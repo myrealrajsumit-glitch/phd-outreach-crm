@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: phd-outreach-crm
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GEMINI_MODEL
+        value: gemini-2.0-flash
+      - key: PORT
+        value: 10000
