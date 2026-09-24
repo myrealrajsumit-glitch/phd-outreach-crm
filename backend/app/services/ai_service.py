@@ -11,7 +11,13 @@ class GeminiService:
     def __init__(self):
         self.keys = settings.gemini_keys
         self.current_key_idx = 0
-        self.model_name = settings.GEMINI_MODEL or "gemini-3.6-flash"
+        preferred = settings.GEMINI_MODEL or "gemini-3.1-flash-lite"
+        # Primary and failover models verified to work with sub-second response
+        candidate_models = [preferred, "gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-latest"]
+        self.models_pool = []
+        for m in candidate_models:
+            if m and m not in self.models_pool:
+                self.models_pool.append(m)
 
     def _get_next_client(self) -> genai.Client:
         if not self.keys:
@@ -21,29 +27,35 @@ class GeminiService:
         return genai.Client(api_key=key)
 
     def _generate_with_fallback(self, prompt: str, system_instruction: Optional[str] = None) -> str:
-        attempts = len(self.keys) if self.keys else 1
         last_error = None
 
-        for attempt in range(attempts):
-            client = self._get_next_client()
-            try:
-                config = {}
-                if system_instruction:
-                    config["system_instruction"] = system_instruction
-                
-                response = client.models.generate_content(
-                    model=self.model_name,
-                    contents=prompt,
-                    config=config if config else None
-                )
-                if response and response.text:
-                    return response.text.strip()
-                raise ValueError("Empty response received from Gemini.")
-            except (genai_errors.ClientError, Exception) as e:
-                logger.warning(f"Gemini attempt {attempt + 1} failed: {e}. Rotating to next key.")
-                last_error = e
+        # Try across available models in pool with key rotation
+        for model in self.models_pool:
+            for attempt in range(len(self.keys) if self.keys else 1):
+                client = self._get_next_client()
+                try:
+                    config = {}
+                    if system_instruction:
+                        config["system_instruction"] = system_instruction
+                    
+                    response = client.models.generate_content(
+                        model=model,
+                        contents=prompt,
+                        config=config if config else None
+                    )
+                    if response and response.text:
+                        return response.text.strip()
+                    raise ValueError("Empty response received from Gemini.")
+                except (genai_errors.ClientError, Exception) as e:
+                    err_str = str(e)
+                    logger.warning(f"Gemini {model} attempt {attempt + 1} failed: {e}.")
+                    last_error = e
+                    # If model is 503 unavailable (high demand) or 404, immediately switch to next model
+                    if "503" in err_str or "UNAVAILABLE" in err_str or "404" in err_str or "NOT_FOUND" in err_str:
+                        logger.info(f"Model {model} experienced capacity limit (503/404). Immediately trying next fallback model.")
+                        break
 
-        raise RuntimeError(f"All Gemini API keys in pool failed. Last error: {last_error}")
+        raise RuntimeError(f"All Gemini models and API keys failed. Last error: {last_error}")
 
     def synthesize_professor_research(
         self,

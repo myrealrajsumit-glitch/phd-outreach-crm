@@ -9,10 +9,14 @@ import {
   Key, 
   ShieldCheck, 
   Server,
-  CheckCircle2
+  CheckCircle2,
+  Activity,
+  ExternalLink,
+  HelpCircle
 } from 'lucide-react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import { formatErrorMessage } from '../utils/errorUtils';
 
 const SettingsPage = () => {
   const { user, updateProfile } = useAuth();
@@ -38,6 +42,7 @@ const SettingsPage = () => {
 
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingSmtp, setSavingSmtp] = useState(false);
+  const [testingSmtp, setTestingSmtp] = useState(false);
   const [health, setHealth] = useState(null);
 
   useEffect(() => {
@@ -74,7 +79,7 @@ const SettingsPage = () => {
       await updateProfile(profileForm);
       toast.success("Candidate Profile updated!");
     } catch (err) {
-      toast.error("Failed to update profile.");
+      toast.error(formatErrorMessage(err, "Failed to update profile."));
     } finally {
       setSavingProfile(false);
     }
@@ -87,9 +92,29 @@ const SettingsPage = () => {
       await api.put('/auth/me/smtp', smtpForm);
       toast.success("SMTP Credentials configured for outreach!");
     } catch (err) {
-      toast.error("Failed to save SMTP settings.");
+      toast.error(formatErrorMessage(err, "Failed to save SMTP settings."));
     } finally {
       setSavingSmtp(false);
+    }
+  };
+
+  const handleTestSmtp = async () => {
+    if (!smtpForm.smtp_user || !smtpForm.smtp_password) {
+      toast.error("Please enter email and app password first to test connection.");
+      return;
+    }
+    setTestingSmtp(true);
+    try {
+      const res = await api.post('/auth/me/smtp/test', smtpForm);
+      toast.success(res.data.message || "SMTP Connection Successful! Ready for live outreach.", {
+        icon: '✅',
+        duration: 5000
+      });
+    } catch (err) {
+      console.error("SMTP Test Error:", err);
+      toast.error(formatErrorMessage(err, "SMTP Connection Failed. Check email, app password, and port."));
+    } finally {
+      setTestingSmtp(false);
     }
   };
 
@@ -216,9 +241,38 @@ const SettingsPage = () => {
 
       {/* SMTP Outreach Credentials */}
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-slate-100 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-          <Mail className="w-4 h-4 text-emerald-600" />
-          <span>Direct Outreach SMTP Credentials (Gmail / University Mail)</span>
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-slate-100">
+            <Mail className="w-4 h-4 text-emerald-600" />
+            <span>Direct Outreach SMTP Credentials (Gmail / University Mail)</span>
+          </div>
+          <a 
+            href="https://myaccount.google.com/apppasswords" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1"
+          >
+            <span>Google App Passwords</span>
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
+
+        {/* Guidance Banner */}
+        <div className="mb-4 p-4 rounded-2xl bg-blue-50/70 border border-blue-200 text-xs text-slate-700 space-y-2">
+          <div className="font-bold text-blue-900 flex items-center gap-1.5">
+            <HelpCircle className="w-4 h-4 text-blue-600" />
+            <span>How Live Email Sending Works</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px] leading-relaxed">
+            <div className="bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs">
+              <strong className="text-blue-800 block mb-1">🚀 Option 1: 1-Click Gmail (Zero Setup)</strong>
+              In the email composer, click <strong>"Open in Gmail (1-Click)"</strong> to immediately open your official Gmail compose tab with the professor, subject, and AI draft pre-populated. 100% delivered from your genuine personal account.
+            </div>
+            <div className="bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs">
+              <strong className="text-emerald-800 block mb-1">⚡ Option 2: Automated In-App Dispatch (SMTP)</strong>
+              To send emails automatically directly from the CRM, configure your Gmail SMTP below using a 16-character <strong>App Password</strong> (generate at Google Account → Security → 2-Step Verification → App Passwords).
+            </div>
+          </div>
         </div>
 
         <form onSubmit={handleSaveSmtp} className="space-y-4 text-xs">
@@ -267,7 +321,7 @@ const SettingsPage = () => {
             </div>
             <div>
               <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">
-                App Password / Secret
+                16-Character App Password
               </label>
               <input
                 type="password"
@@ -293,7 +347,17 @@ const SettingsPage = () => {
             />
           </div>
 
-          <div className="flex justify-end pt-2">
+          <div className="flex items-center justify-between pt-2">
+            <button
+              type="button"
+              onClick={handleTestSmtp}
+              disabled={testingSmtp}
+              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold flex items-center gap-1.5 border border-slate-300 transition-all disabled:opacity-50"
+            >
+              <Activity className={`w-3.5 h-3.5 text-blue-600 ${testingSmtp ? 'animate-spin' : ''}`} />
+              <span>{testingSmtp ? "Testing Connection..." : "Test SMTP Connection"}</span>
+            </button>
+
             <button
               type="submit"
               disabled={savingSmtp}

@@ -129,3 +129,27 @@ async def update_smtp_settings(
     current_user.smtp_use_tls = settings_data.smtp_use_tls
     await db.commit()
     return {"success": True, "message": "SMTP outreach credentials updated successfully."}
+
+@router.post("/me/smtp/test")
+async def test_smtp_settings(
+    settings_data: SMTPSettingsUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    import aiosmtplib
+    if not settings_data.smtp_host or not settings_data.smtp_user or not settings_data.smtp_password:
+        raise HTTPException(status_code=400, detail="Host, username/email, and password are all required to test SMTP.")
+
+    try:
+        smtp = aiosmtplib.SMTP(
+            hostname=settings_data.smtp_host,
+            port=settings_data.smtp_port or 587,
+            start_tls=settings_data.smtp_use_tls,
+            timeout=10
+        )
+        await smtp.connect()
+        await smtp.login(settings_data.smtp_user, settings_data.smtp_password)
+        await smtp.quit()
+        return {"success": True, "message": f"SMTP handshake & authentication successful with {settings_data.smtp_host}!"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"SMTP Connection Failed: {str(e)}")
+

@@ -44,11 +44,40 @@ async def create_email_draft(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    stmt = select(Professor).where(Professor.id == draft_data.professor_id, Professor.user_id == current_user.id)
-    res = await db.execute(stmt)
-    prof = res.scalar_one_or_none()
+    prof = None
+    if draft_data.professor_id:
+        stmt = select(Professor).where(Professor.id == draft_data.professor_id, Professor.user_id == current_user.id)
+        res = await db.execute(stmt)
+        prof = res.scalar_one_or_none()
+
+    if not prof and draft_data.recipient_email:
+        clean_email = draft_data.recipient_email.strip().lower()
+        stmt = select(Professor).where(Professor.email == clean_email, Professor.user_id == current_user.id)
+        res = await db.execute(stmt)
+        prof = res.scalar_one_or_none()
+
+        if not prof:
+            username = clean_email.split('@')[0]
+            parts = [part.capitalize() for part in username.replace('.', ' ').replace('_', ' ').split() if part]
+            name = draft_data.recipient_name or (f"Prof. {' '.join(parts)}" if parts else "Faculty Member")
+            inst = draft_data.institution or "Academic Department"
+            if '@' in clean_email:
+                domain = clean_email.split('@')[1]
+                inst = domain.replace('.edu', ' University').replace('.ac.uk', ' University').replace('.org', '').title()
+
+            prof = Professor(
+                user_id=current_user.id,
+                name=name,
+                email=clean_email,
+                institution=inst,
+                status="Identified"
+            )
+            db.add(prof)
+            await db.commit()
+            await db.refresh(prof)
+
     if not prof:
-        raise HTTPException(status_code=404, detail="Professor not found")
+        raise HTTPException(status_code=400, detail="Recipient professor ID or email address must be provided.")
 
     new_draft = EmailDraft(
         professor_id=prof.id,

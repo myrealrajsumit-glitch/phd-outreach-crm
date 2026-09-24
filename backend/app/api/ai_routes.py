@@ -76,32 +76,61 @@ async def generate_email_draft(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    stmt = (
-        select(Professor)
-        .where(Professor.id == req.professor_id, Professor.user_id == current_user.id)
-        .options(selectinload(Professor.papers))
-    )
-    res = await db.execute(stmt)
-    prof = res.scalar_one_or_none()
-    if not prof:
-        raise HTTPException(status_code=404, detail="Professor not found")
-
+    prof = None
     target_papers = []
-    for p in prof.papers:
-        if req.paper_ids:
-            if p.id in req.paper_ids:
+    prof_name = req.professor_name
+    institution = req.institution or "Academic Department"
+    topics = req.research_topics or current_user.research_interests or current_user.target_field or "Computer Science & AI"
+
+    if req.professor_id:
+        stmt = (
+            select(Professor)
+            .where(Professor.id == req.professor_id, Professor.user_id == current_user.id)
+            .options(selectinload(Professor.papers))
+        )
+        res = await db.execute(stmt)
+        prof = res.scalar_one_or_none()
+
+    # If no professor found by ID but recipient_email provided, try matching by email
+    if not prof and req.recipient_email:
+        stmt = (
+            select(Professor)
+            .where(Professor.email == req.recipient_email.strip(), Professor.user_id == current_user.id)
+            .options(selectinload(Professor.papers))
+        )
+        res = await db.execute(stmt)
+        prof = res.scalar_one_or_none()
+
+    if prof:
+        prof_name = prof.name
+        institution = prof.institution
+        topics = prof.research_topics or topics
+        for p in prof.papers:
+            if req.paper_ids:
+                if p.id in req.paper_ids:
+                    target_papers.append({"title": p.title, "year": p.year, "venue": p.venue, "abstract": p.abstract})
+            else:
                 target_papers.append({"title": p.title, "year": p.year, "venue": p.venue, "abstract": p.abstract})
-        else:
-            target_papers.append({"title": p.title, "year": p.year, "venue": p.venue, "abstract": p.abstract})
+    else:
+        # Fallback intelligent extraction if no DB professor selected
+        if not prof_name and req.recipient_email:
+            username = req.recipient_email.split('@')[0]
+            parts = [part.capitalize() for part in username.replace('.', ' ').replace('_', ' ').split() if part]
+            prof_name = f"Prof. {' '.join(parts)}" if parts else "Professor"
+            if '@' in req.recipient_email:
+                domain = req.recipient_email.split('@')[1]
+                institution = domain.replace('.edu', ' University').replace('.ac.uk', ' University').replace('.org', '').title()
+        if not prof_name:
+            prof_name = "Professor"
 
     try:
         draft_result = ai_service.draft_academic_cold_email(
-            professor_name=prof.name,
-            institution=prof.institution,
+            professor_name=prof_name,
+            institution=institution,
             papers=target_papers,
-            candidate_name=current_user.full_name,
+            candidate_name=current_user.full_name or "PhD Applicant",
             candidate_degree=current_user.current_degree or "M.S. in Computer Science",
-            candidate_interests=current_user.research_interests or prof.research_topics or "AI Research",
+            candidate_interests=topics,
             candidate_cv_summary=current_user.cv_summary or "Proven track record in research and development.",
             tone=req.tone or "Formal Academic",
             word_count=req.word_count or 250,
@@ -124,40 +153,47 @@ async def generate_follow_up_email(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    stmt = (
-        select(Professor)
-        .where(Professor.id == req.professor_id, Professor.user_id == current_user.id)
-    )
-    res = await db.execute(stmt)
-    prof = res.scalar_one_or_none()
-    if not prof:
-        raise HTTPException(status_code=404, detail="Professor not found")
+    prof_name = req.professor_name or "Professor"
+    institution = req.institution or "Academic Department"
+    prev_subject = req.previous_subject or f"PhD Inquiry - {current_user.target_field or 'Research Position'}"
+    prev_body = req.previous_body or "Initial inquiry regarding PhD openings and research alignment."
 
-    # Find previous email draft
-    from app.models.email import EmailDraft
-    prev_draft = None
-    if req.draft_id:
-        prev_res = await db.execute(select(EmailDraft).where(EmailDraft.id == req.draft_id))
-        prev_draft = prev_res.scalar_one_or_none()
-    else:
-        prev_res = await db.execute(
-            select(EmailDraft)
-            .where(EmailDraft.professor_id == prof.id)
-            .order_by(EmailDraft.updated_at.desc())
-            .limit(1)
+    if req.professor_id:
+        stmt = (
+            select(Professor)
+            .where(Professor.id == req.professor_id, Professor.user_id == current_user.id)
         )
-        prev_draft = prev_res.scalar_one_or_none()
+        res = await db.execute(stmt)
+        prof = res.scalar_one_or_none()
+        if prof:
+            prof_name = prof.name
+            institution = prof.institution
 
-    prev_subject = prev_draft.subject if prev_draft else f"PhD Inquiry - {current_user.target_field}"
-    prev_body = prev_draft.body if prev_draft else "Initial inquiry regarding research openings."
+            from app.models.email import EmailDraft
+            prev_draft = None
+            if req.draft_id:
+                prev_res = await db.execute(select(EmailDraft).where(EmailDraft.id == req.draft_id))
+                prev_draft = prev_res.scalar_one_or_none()
+            else:
+                prev_res = await db.execute(
+                    select(EmailDraft)
+                    .where(EmailDraft.professor_id == prof.id)
+                    .order_by(EmailDraft.updated_at.desc())
+                    .limit(1)
+                )
+                prev_draft = prev_res.scalar_one_or_none()
+
+            if prev_draft:
+                prev_subject = prev_draft.subject
+                prev_body = prev_draft.body
 
     try:
         fu_result = ai_service.draft_follow_up_email(
-            professor_name=prof.name,
-            institution=prof.institution,
+            professor_name=prof_name,
+            institution=institution,
             previous_subject=prev_subject,
             previous_body=prev_body,
-            candidate_name=current_user.full_name,
+            candidate_name=current_user.full_name or "PhD Applicant",
             follow_up_stage=req.follow_up_stage or 1,
             custom_hook=req.custom_hook
         )

@@ -7,7 +7,10 @@ class EmailDraftBase(BaseModel):
     body: str
 
 class EmailDraftCreate(EmailDraftBase):
-    professor_id: int
+    professor_id: Optional[int] = None
+    recipient_email: Optional[str] = None
+    recipient_name: Optional[str] = None
+    institution: Optional[str] = None
 
 class EmailDraftUpdate(BaseModel):
     subject: Optional[str] = None

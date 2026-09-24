@@ -14,13 +14,10 @@ class MailService:
         subject: str,
         body: str
     ) -> Tuple[bool, Optional[str]]:
-        """
-        Dispatches an email. If the user hasn't configured SMTP credentials yet,
-        it logs the email safely and returns simulated success to allow local testing.
-        """
         if not user.smtp_host or not user.smtp_user or not user.smtp_password:
-            logger.info(f"[SIMULATED OUTREACH] To: {recipient_email} | Subject: {subject} (Configure SMTP in settings for live dispatch)")
-            return True, "Simulated dispatch (SMTP not configured in user settings)"
+            msg = "SMTP is not configured in Settings. Please enter your Gmail/University SMTP credentials (e.g. Gmail App Password) in Settings, or use 'Open in Gmail Web (1-Click)'."
+            logger.warning(f"[SMTP UNCONFIGURED] Cannot send live email to {recipient_email}: {msg}")
+            return False, msg
 
         try:
             message = EmailMessage()

@@ -14,7 +14,11 @@ class AIReviewResponse(BaseModel):
     synthesis_markdown: str
 
 class AIEmailDraftRequest(BaseModel):
-    professor_id: int
+    professor_id: Optional[int] = None
+    recipient_email: Optional[str] = None
+    professor_name: Optional[str] = None
+    institution: Optional[str] = None
+    research_topics: Optional[str] = None
     paper_ids: Optional[List[int]] = None
     tone: Optional[str] = "Formal Academic"  # 'Formal Academic', 'Direct & Concise', 'Technical Deep-Dive'
     word_count: Optional[int] = 250  # 150, 250, 350
@@ -28,7 +32,12 @@ class AIEmailDraftResponse(BaseModel):
     suggested_call_to_action: str
 
 class AIFollowUpRequest(BaseModel):
-    professor_id: int
+    professor_id: Optional[int] = None
+    recipient_email: Optional[str] = None
+    professor_name: Optional[str] = None
+    institution: Optional[str] = None
+    previous_subject: Optional[str] = None
+    previous_body: Optional[str] = None
     draft_id: Optional[int] = None
     follow_up_stage: Optional[int] = 1  # 1 = 7 days, 2 = 14 days, 3 = final
     custom_hook: Optional[str] = None
