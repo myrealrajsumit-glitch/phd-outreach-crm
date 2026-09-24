@@ -11,6 +11,11 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"
     
+    # Permanent Local Server Configuration
+    HOST: str = "0.0.0.0"
+    PORT: int = 5555
+    FRONTEND_PORT: int = 5566
+    
     # Security & Auth
     SECRET_KEY: str = "phd_outreach_crm_super_secret_jwt_key_2026"
     ALGORITHM: str = "HS256"
