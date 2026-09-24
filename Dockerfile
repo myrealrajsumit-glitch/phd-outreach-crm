@@ -43,4 +43,4 @@ USER user
 EXPOSE 7860
 
 WORKDIR /app/backend
-CMD ["sh", "-c", "python seed_data.py && uvicorn app.main:app --host 0.0.0.0 --port 7860"]
+CMD ["sh", "-c", "python seed_data.py && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-7860}"]

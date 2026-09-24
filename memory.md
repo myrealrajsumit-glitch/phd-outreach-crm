@@ -35,21 +35,22 @@
     - Verified Vite client production build (`dist/`) successfully compiles in 2.45s with 0 errors.
     - Seeded initial professor and candidate records (`backend/seed_data.py`).
 
+- **2026-09-24 (GitHub Push & Deployment Preparation)**:
+  - Configured remote origin to `https://github.com/myrealrajsumit-glitch/phd-outreach-crm.git`.
+  - Pushed all core branches and CRM components to GitHub `main`.
+  - Updated `Dockerfile` to dynamically support cloud-provided `$PORT` (Render port 10000, Hugging Face port 7860).
+  - Ready for 1-click free deployment on Render.com or manual hosting.
+
 ---
 
 ### 3. CURRENTLY WORKING
 
-- **Current Status**: Development environment is active, running, and all integration tests are verified passing.
-- **Active Services**:
-  - **FastAPI Backend**: Running on `http://127.0.0.1:8000` (Uvicorn with auto-reload, SQLite connected, 6-key Gemini pool active).
-  - **Vite React Frontend**: Running on `http://localhost:5173` (HMR enabled, proxying `/api` requests to backend).
-- **Test Status**:
-  - `backend/tests/test_api_flow.py` updated for 100% idempotent execution (passed in 36s with live Gemini AI review & email draft validation).
-- **Ready Next Workflows**:
-  - Access the CRM Dashboard in your browser at `http://localhost:5173`.
-  - Conduct professor research reviews or generate AI cold email drafts directly in the UI.
-  - Review and expand candidate profile settings or professor records.
-  - Configure personal SMTP credentials in Settings for live outreach dispatch.
+- **Current Status**: All code, configurations, and assets are safely committed and synced to GitHub (`main` branch).
+- **GitHub Repository**: `https://github.com/myrealrajsumit-glitch/phd-outreach-crm`
+- **Next Steps When Resuming**:
+  1. Complete 100% free deployment on [dashboard.render.com](https://dashboard.render.com) (select GitHub repo -> Web Service -> Free tier).
+  2. Add environment secrets (`SECRET_KEY`, `ENVIRONMENT=production`, Gemini API keys).
+  3. Verify live URL access.
 
 ---
 
