@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import { formatErrorMessage } from '../utils/errorUtils';
 
 const ProfessorsPage = () => {
   const [professors, setProfessors] = useState([]);
@@ -120,7 +121,7 @@ const ProfessorsPage = () => {
       fetchProfessors();
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.detail || "Failed to create professor.");
+      toast.error(formatErrorMessage(err, "Failed to create professor."));
     }
   };
 

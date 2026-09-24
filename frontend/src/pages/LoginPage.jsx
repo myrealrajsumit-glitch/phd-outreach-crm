@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { GraduationCap, Sparkles, Mail, Lock, User, BookOpen, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { formatErrorMessage } from '../utils/errorUtils';
 
 const LoginPage = () => {
   const [isRegister, setIsRegister] = useState(false);
@@ -37,7 +38,7 @@ const LoginPage = () => {
       navigate('/');
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.detail || "Authentication failed.");
+      toast.error(formatErrorMessage(err, "Authentication failed."));
     } finally {
       setLoading(false);
     }

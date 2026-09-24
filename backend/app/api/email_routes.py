@@ -66,6 +66,61 @@ async def create_email_draft(
     await db.refresh(new_draft)
     return new_draft
 
+@router.get("/templates", response_model=List[TemplateResponse])
+async def list_templates(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    stmt = select(EmailTemplate).where(EmailTemplate.user_id == current_user.id)
+    res = await db.execute(stmt)
+    templates = res.scalars().all()
+    
+    # If no templates exist, seed default academic templates
+    if not templates:
+        default_1 = EmailTemplate(
+            user_id=current_user.id,
+            name="Formal PhD Inquiry (Paper Grounded)",
+            description="Polite, scholarly inquiry highlighting mutual alignment and citing recent publication.",
+            subject_template="Prospective PhD Inquiry - {{research_topic}} - {{candidate_name}}",
+            body_template="Dear Professor {{professor_last_name}},\n\nI hope you are having a productive semester.\n\nMy name is {{candidate_name}}, and I hold a {{candidate_degree}} specializing in {{candidate_field}}. I have been following your lab's recent contributions in {{research_topic}}, particularly your paper '{{paper_title}}'. Your methodology regarding {{key_takeaway}} strongly aligns with my previous research in {{candidate_experience}}.\n\nI am writing to inquire if you are accepting new PhD students into your group for the upcoming academic cycle. I would welcome the opportunity to discuss potential alignment or questions regarding your ongoing projects.\n\nI have attached my CV for your review. Would you be open to a brief 15-minute introductory video call at your convenience?\n\nThank you for your time and consideration.\n\nSincerely,\n{{candidate_name}}\n{{candidate_email}}",
+            is_default=True
+        )
+        default_2 = EmailTemplate(
+            user_id=current_user.id,
+            name="Concise Direct Inquiry",
+            description="Brief, punchy inquiry suitable for busy department chairs and high-volume PIs.",
+            subject_template="Inquiry regarding PhD Openings in {{research_topic}} ({{candidate_name}})",
+            body_template="Dear Professor {{professor_last_name}},\n\nI am writing to inquire about open PhD student positions in your laboratory at {{institution}} for the upcoming intake.\n\nI completed my {{candidate_degree}} with a focus on {{candidate_field}}. Having studied your paper on '{{paper_title}}', I am eager to contribute to your group's work on {{research_topic}}.\n\nMy CV is attached. If you are taking on students, I would greatly appreciate a brief opportunity to discuss how my background fits your team's goals.\n\nBest regards,\n{{candidate_name}}",
+            is_default=False
+        )
+        db.add(default_1)
+        db.add(default_2)
+        await db.commit()
+        
+        res = await db.execute(stmt)
+        templates = res.scalars().all()
+
+    return templates
+
+@router.post("/templates", response_model=TemplateResponse)
+async def create_template(
+    template_data: TemplateCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    new_tpl = EmailTemplate(
+        user_id=current_user.id,
+        name=template_data.name,
+        description=template_data.description,
+        subject_template=template_data.subject_template,
+        body_template=template_data.body_template,
+        is_default=template_data.is_default or False
+    )
+    db.add(new_tpl)
+    await db.commit()
+    await db.refresh(new_tpl)
+    return new_tpl
+
 @router.get("/{draft_id}", response_model=EmailDraftResponse)
 async def get_email_draft(
     draft_id: int,
@@ -219,57 +274,3 @@ async def batch_send_drafts(
         "message": f"Successfully queued {queued_count} emails with {req.interval_seconds}s staggering."
     }
 
-@router.get("/templates", response_model=List[TemplateResponse])
-async def list_templates(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    stmt = select(EmailTemplate).where(EmailTemplate.user_id == current_user.id)
-    res = await db.execute(stmt)
-    templates = res.scalars().all()
-    
-    # If no templates exist, seed default academic templates
-    if not templates:
-        default_1 = EmailTemplate(
-            user_id=current_user.id,
-            name="Formal PhD Inquiry (Paper Grounded)",
-            description="Polite, scholarly inquiry highlighting mutual alignment and citing recent publication.",
-            subject_template="Prospective PhD Inquiry - {{research_topic}} - {{candidate_name}}",
-            body_template="Dear Professor {{professor_last_name}},\n\nI hope you are having a productive semester.\n\nMy name is {{candidate_name}}, and I hold a {{candidate_degree}} specializing in {{candidate_field}}. I have been following your lab's recent contributions in {{research_topic}}, particularly your paper '{{paper_title}}'. Your methodology regarding {{key_takeaway}} strongly aligns with my previous research in {{candidate_experience}}.\n\nI am writing to inquire if you are accepting new PhD students into your group for the upcoming academic cycle. I would welcome the opportunity to discuss potential alignment or questions regarding your ongoing projects.\n\nI have attached my CV for your review. Would you be open to a brief 15-minute introductory video call at your convenience?\n\nThank you for your time and consideration.\n\nSincerely,\n{{candidate_name}}\n{{candidate_email}}",
-            is_default=True
-        )
-        default_2 = EmailTemplate(
-            user_id=current_user.id,
-            name="Concise Direct Inquiry",
-            description="Brief, punchy inquiry suitable for busy department chairs and high-volume PIs.",
-            subject_template="Inquiry regarding PhD Openings in {{research_topic}} ({{candidate_name}})",
-            body_template="Dear Professor {{professor_last_name}},\n\nI am writing to inquire about open PhD student positions in your laboratory at {{institution}} for the upcoming intake.\n\nI completed my {{candidate_degree}} with a focus on {{candidate_field}}. Having studied your paper on '{{paper_title}}', I am eager to contribute to your group's work on {{research_topic}}.\n\nMy CV is attached. If you are taking on students, I would greatly appreciate a brief opportunity to discuss how my background fits your team's goals.\n\nBest regards,\n{{candidate_name}}",
-            is_default=False
-        )
-        db.add(default_1)
-        db.add(default_2)
-        await db.commit()
-        
-        res = await db.execute(stmt)
-        templates = res.scalars().all()
-
-    return templates
-
-@router.post("/templates", response_model=TemplateResponse)
-async def create_template(
-    template_data: TemplateCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    new_tpl = EmailTemplate(
-        user_id=current_user.id,
-        name=template_data.name,
-        description=template_data.description,
-        subject_template=template_data.subject_template,
-        body_template=template_data.body_template,
-        is_default=template_data.is_default or False
-    )
-    db.add(new_tpl)
-    await db.commit()
-    await db.refresh(new_tpl)
-    return new_tpl

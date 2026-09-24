@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import { formatErrorMessage } from '../utils/errorUtils';
 
 const ProfessorDetailPage = () => {
   const { id } = useParams();
@@ -159,7 +160,7 @@ const ProfessorDetailPage = () => {
       fetchProfessor();
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.detail || "Dispatch failed. (You can also copy to Gmail directly).");
+      toast.error(formatErrorMessage(err, "Dispatch failed. (You can also copy to Gmail directly)."));
     }
   };
 
