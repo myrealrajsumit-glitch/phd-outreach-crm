@@ -103,24 +103,49 @@ async def seed():
     await init_db()
     async with AsyncSessionLocal() as session:
         # Check if default candidate user exists
-        stmt = select(User).where(User.email == "candidate.test@stanford.edu")
+        stmt = select(User).where(User.email == "er.raj.sumit49@gmail.com")
         res = await session.execute(stmt)
         user = res.scalar_one_or_none()
 
+        cv_summary = """AI/ML-oriented civil engineer and MSc graduate (Project & Infrastructure Management, Brunel University London, Merit) working at the intersection of machine learning, construction project controls, and infrastructure decision-making. Current research applies Python-based data pipelines and supervised learning models (Random Forest, Decision Tree, Linear Regression, KNN, Naive Bayes) to construction schedule, cost, progress, and resource data, generating interpretable, evidence-based risk indicators for project decision support. Combines applied industry experience as Project Engineer at Armour Construction, Tesco, and Kriach Infrastructure with peer-reviewed publication authorship and a national Best Paper Award (NEEV 2017).
+
+Key Research & Academic Portfolio:
+- AI-Assisted Project Monitoring & Risk Prediction System for Construction Projects (Armour Construction, Indore): Designed data-driven framework integrating construction schedules, cost records, and site-progress data; trained Random Forest and Decision Tree models to predict schedule delays, cost overruns, and resource conflicts; built Python/Pandas data pipelines for cleaning, validation, and BIM-derived analysis; created interpretable risk visualisations for human-AI decision support.
+- MSc Dissertation (Brunel University London): 'BIM for Construction Project Monitoring & Payment Certification' — investigated integration of BIM into real-time monitoring and payment certification workflows.
+- Academic Performance: MSc Merit from Brunel University London (Grade A/A+ in Research Methods, Infrastructure Management, Sustainable Project Management, Quality Management & Reliability). B.E. Civil Engineering Honours (80%).
+- Publications:
+  1. 'Expansive Soil Modification by the Application of Different Waste Materials' (IJTIMES, 2018)
+  2. 'E-waste as a Replacement for Aggregate in M-25 Concrete' (IJRDET, 2017)
+- Awards: Best Paper Award (National-Level NEEV 2017), Champion SAMEEKSHA Technical Championship, First Place SRUJAN Science & Tech Exhibition.
+- Technical Skills: Python (Pandas, NumPy, Scikit-learn, Matplotlib), Power BI, BIM, AutoCAD, Revit, MS Project, STAAD Pro, MATLAB.
+- Academic References: Dr. Andrew Fox (Vice Dean Education / Senior Lecturer, Brunel University London) & Dr. Muhammad Shafique (Lecturer, Brunel University London)."""
+
+        target_field = "AI/ML for Construction & Infrastructure Systems | Predictive Risk Analytics & Digital Construction"
+        degree = "MSc Project and Infrastructure Management (Merit, Brunel University London, 2023) | B.E. Civil Engineering (Honours, 80%)"
+        interests = "AI/ML for Construction & Infrastructure Systems, Predictive Construction Risk Analytics, Cost & Schedule Forecasting Models, AI-Assisted Project Monitoring, BIM + AI / Digital Construction, Data-Driven Project Controls, Human-AI Decision Support, Sustainable & Resilient Infrastructure"
+
         if not user:
             user = User(
-                email="candidate.test@stanford.edu",
+                email="er.raj.sumit49@gmail.com",
                 hashed_password=hash_password("SecurePassword123!"),
                 full_name="Sumit Raj",
-                target_field="Computer Science & Artificial Intelligence",
-                current_degree="M.S. in Computer Science",
-                research_interests="Large Language Models, Multi-Agent Systems, Agentic Workflows",
-                cv_summary="NeurIPS workshop author. Strong background in PyTorch, distributed inference, and RLHF fine-tuning."
+                target_field=target_field,
+                current_degree=degree,
+                research_interests=interests,
+                cv_summary=cv_summary
             )
             session.add(user)
             await session.commit()
             await session.refresh(user)
-            print("[PASS] Created seed user: candidate.test@stanford.edu")
+            print("[PASS] Created seed user: er.raj.sumit49@gmail.com (Sumit Raj)")
+        else:
+            user.full_name = "Sumit Raj"
+            user.target_field = target_field
+            user.current_degree = degree
+            user.research_interests = interests
+            user.cv_summary = cv_summary
+            await session.commit()
+            print("[PASS] Updated existing seed user profile to Brunel MSc with Merit")
 
         # Check existing professors
         prof_stmt = select(Professor).where(Professor.user_id == user.id)

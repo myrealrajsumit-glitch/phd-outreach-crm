@@ -14,7 +14,9 @@ import {
   FileText,
   Check,
   ChevronDown,
-  ExternalLink
+  ExternalLink,
+  History,
+  CheckCircle2
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -42,21 +44,24 @@ const GmailCompose = () => {
   const [followUpStage, setFollowUpStage] = useState(1);
   const [customHook, setCustomHook] = useState('');
   const [templates, setTemplates] = useState([]);
+  const [sentEmails, setSentEmails] = useState([]);
   
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Load professors and templates
+  // Load professors, templates, and sent outreach
   useEffect(() => {
     const loadMetadata = async () => {
       try {
-        const [profRes, tplRes] = await Promise.all([
+        const [profRes, tplRes, sentRes] = await Promise.all([
           api.get('/professors'),
-          api.get('/emails/templates')
+          api.get('/emails/templates'),
+          api.get('/emails', { params: { status: 'Sent' } })
         ]);
         setProfessors(profRes.data || []);
         setTemplates(tplRes.data || []);
+        setSentEmails(sentRes.data || []);
       } catch (err) {
         console.error("Error loading compose metadata:", err);
       }
@@ -215,6 +220,63 @@ const GmailCompose = () => {
     }
   };
 
+  const handleAutofillFromSent = (sentDraftId) => {
+    const draft = sentEmails.find(x => x.id === parseInt(sentDraftId));
+    if (!draft) return;
+
+    const currentProf = professors.find(p => p.id === parseInt(selectedProfId));
+    let newSubject = draft.subject;
+    let newBody = draft.body;
+
+    // Intelligently adapt greeting if a professor is selected
+    if (currentProf && currentProf.name) {
+      const lastName = currentProf.name.split(' ').pop();
+      newBody = newBody.replace(/Dear (Professor|Dr\.) [A-Za-z\-]+,/gi, `Dear Professor ${lastName},`);
+    }
+
+    setSubject(newSubject);
+    setBody(newBody);
+    toast.success(`Autofilled from sent email: "${draft.subject.slice(0, 32)}..."`, { icon: '📋' });
+  };
+
+  const handleMarkAsSent = async () => {
+    if (!to && !body) {
+      toast.error("Please enter a recipient email or content first.");
+      return;
+    }
+    const targetProf = professors.find(p => p.id === parseInt(selectedProfId))
+      || professors.find(p => p.email && to && p.email.toLowerCase() === to.trim().toLowerCase());
+
+    const payload = {
+      subject: subject || 'PhD Outreach Email',
+      body: body || '',
+      status: 'Sent'
+    };
+
+    if (targetProf?.id) {
+      payload.professor_id = targetProf.id;
+    } else if (to && to.trim()) {
+      payload.recipient_email = to.trim();
+    } else if (professors[0]?.id) {
+      payload.professor_id = professors[0].id;
+    } else {
+      toast.error("Please specify a recipient professor or email.");
+      return;
+    }
+
+    try {
+      await api.post('/emails', payload);
+      toast.success("Outreach recorded as Sent in CRM!", { icon: '✅' });
+      // Refresh sent emails list
+      const sentRes = await api.get('/emails', { params: { status: 'Sent' } });
+      setSentEmails(sentRes.data || []);
+      closeCompose();
+    } catch (err) {
+      console.error("Mark as sent error:", err);
+      toast.error(formatErrorMessage(err, "Failed to record sent outreach."));
+    }
+  };
+
   const handleOpenInGmail = async () => {
     if (!to && !body) {
       toast.error("Please enter a recipient email or draft content first.");
@@ -225,7 +287,21 @@ const GmailCompose = () => {
 
     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to || '')}&su=${encodeURIComponent(subject || '')}&body=${encodeURIComponent(body || '')}`;
     window.open(gmailUrl, '_blank', 'noopener,noreferrer');
-    toast.success("Opened in Gmail! CRM draft has been saved.", { icon: '🚀' });
+    toast.success("Opened in Gmail! CRM draft saved.", { icon: '🚀' });
+    toast((t) => (
+      <div className="flex items-center gap-2 text-xs font-medium">
+        <span>Sent email in Gmail?</span>
+        <button
+          onClick={async () => {
+            toast.dismiss(t.id);
+            await handleMarkAsSent();
+          }}
+          className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold shadow-2xs"
+        >
+          ✓ Mark as Sent
+        </button>
+      </div>
+    ), { duration: 9000 });
   };
 
   const handleSendEmail = async () => {
@@ -350,6 +426,50 @@ const GmailCompose = () => {
             />
           </div>
 
+          {/* Autofill from Previous Sent Email Strip */}
+          <div className="bg-[#EEF4FF] px-4 py-2 border-b border-blue-200/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2 flex-1 min-w-[260px]">
+              <div className="flex items-center gap-1.5 text-blue-900 font-bold shrink-0 text-[11px]">
+                <History className="w-3.5 h-3.5 text-blue-700" />
+                <span>Autofill Previous Sent:</span>
+              </div>
+              {sentEmails.length > 0 ? (
+                <select
+                  onChange={(e) => {
+                    if (e.target.value) handleAutofillFromSent(e.target.value);
+                  }}
+                  defaultValue=""
+                  className="text-[11px] bg-white border border-blue-200 rounded-lg px-2.5 py-1 text-slate-800 font-medium max-w-[280px] sm:max-w-[340px] truncate shadow-2xs focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="" disabled>Select previously sent email...</option>
+                  {sentEmails.map(s => {
+                    const prof = professors.find(p => p.id === s.professor_id);
+                    return (
+                      <option key={s.id} value={s.id}>
+                        {prof ? `${prof.name} (${prof.institution})` : 'Faculty'} — {s.subject}
+                      </option>
+                    );
+                  })}
+                </select>
+              ) : (
+                <span className="text-[11px] text-slate-500 italic">
+                  No sent emails yet (dispatch via SMTP or click 'Mark as Sent')
+                </span>
+              )}
+            </div>
+
+            {sentEmails.length > 0 && (
+              <button
+                type="button"
+                onClick={() => handleAutofillFromSent(sentEmails[0].id)}
+                className="shrink-0 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold shadow-2xs transition-all flex items-center gap-1"
+                title="Autofill from the latest sent outreach email"
+              >
+                <span>Latest Sent ⚡</span>
+              </button>
+            )}
+          </div>
+
           {/* AI Co-Pilot & Template Action Strip */}
           <div className="bg-[#FAFBFD] px-4 py-2 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-1.5">
@@ -462,6 +582,16 @@ const GmailCompose = () => {
               >
                 <Save className="w-3.5 h-3.5 text-slate-500" />
                 <span>Save Draft</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleMarkAsSent}
+                className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all"
+                title="Mark outreach as Sent in CRM (moves to Sent Outreach & updates faculty stage to Sent)"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Mark as Sent</span>
               </button>
             </div>
 

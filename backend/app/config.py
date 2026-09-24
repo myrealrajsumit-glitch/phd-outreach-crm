@@ -41,6 +41,15 @@ class Settings(BaseSettings):
     MAX_EMAILS_PER_DAY: int = 25
     MIN_DELAY_BETWEEN_EMAILS_SECONDS: int = 45
     COOLDOWN_PERIOD_DAYS: int = 180
+    
+    # SMTP Outreach Defaults
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+    SMTP_FROM_NAME: str = "Sumit Raj"
+    SMTP_USE_TLS: bool = True
 
     class Config:
         env_file = str(ENV_FILE)

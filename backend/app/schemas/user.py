@@ -37,6 +37,11 @@ class UserResponse(UserBase):
     is_active: bool
     created_at: datetime
     smtp_configured: bool = False
+    smtp_host: Optional[str] = "smtp.gmail.com"
+    smtp_port: Optional[int] = 587
+    smtp_user: Optional[str] = None
+    smtp_from_name: Optional[str] = None
+    smtp_use_tls: Optional[bool] = True
 
     class Config:
         from_attributes = True

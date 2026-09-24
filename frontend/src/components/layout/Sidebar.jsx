@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useCompose } from '../../context/ComposeContext';
 import { 
   Plus, 
@@ -20,6 +20,10 @@ import api from '../../services/api';
 
 const Sidebar = () => {
   const { openCompose } = useCompose();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const currentTab = searchParams.get('tab');
+
   const [counts, setCounts] = useState({
     total: 0,
     reviewing: 0,
@@ -38,7 +42,7 @@ const Sidebar = () => {
         setCounts({
           total: overview.total_professors || 0,
           reviewing: funnel.Reviewing || 0,
-          drafts: funnel.Draft_Ready || 0,
+          drafts: overview.total_drafts !== undefined ? overview.total_drafts : (funnel.Draft_Ready || 0),
           sent: overview.total_sent || 0,
           followUps: funnel.Scheduled || 0,
           replied: overview.total_replied || 0
@@ -48,7 +52,7 @@ const Sidebar = () => {
       }
     };
     fetchCounts();
-  }, []);
+  }, [location.pathname, location.search]);
 
   const navItems = [
     { to: '/', label: 'Overview', icon: LayoutDashboard },
@@ -60,6 +64,15 @@ const Sidebar = () => {
     { to: '/templates', label: 'Email Templates', icon: FileText },
     { to: '/settings', label: 'Settings & SMTP', icon: Settings },
   ];
+
+  const isItemActive = (itemTo) => {
+    if (itemTo === '/') return location.pathname === '/' && !location.search;
+    if (itemTo.includes('?tab=')) {
+      const targetTab = new URLSearchParams(itemTo.split('?')[1]).get('tab');
+      return location.pathname === '/emails' && currentTab === targetTab;
+    }
+    return location.pathname === itemTo;
+  };
 
   return (
     <aside className="w-64 bg-[#F6F8FC] border-r border-slate-200/80 flex flex-col justify-between shrink-0 min-h-[calc(100vh-4rem)] p-3">
@@ -82,21 +95,22 @@ const Sidebar = () => {
         <nav className="space-y-0.5 pt-1">
           {navItems.map((item) => {
             const Icon = item.icon;
+            const active = isItemActive(item.to);
             return (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.to === '/'}
-                className={({ isActive }) =>
+                className={() =>
                   `flex items-center justify-between px-4 py-2.5 rounded-full text-xs font-semibold transition-all ${
-                    isActive
-                      ? 'bg-[#D3E3FD] text-[#041E49] font-bold'
+                    active
+                      ? 'bg-[#D3E3FD] text-[#041E49] font-bold shadow-2xs'
                       : 'text-slate-700 hover:bg-slate-200/60 hover:text-slate-900'
                   }`
                 }
               >
                 <div className="flex items-center gap-3">
-                  <Icon className="w-4 h-4 shrink-0 text-slate-600" />
+                  <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-[#041E49]' : 'text-slate-600'}`} />
                   <span>{item.label}</span>
                 </div>
                 {item.badge !== undefined && item.badge > 0 && (

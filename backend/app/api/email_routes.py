@@ -79,16 +79,22 @@ async def create_email_draft(
     if not prof:
         raise HTTPException(status_code=400, detail="Recipient professor ID or email address must be provided.")
 
+    status = draft_data.status or "Draft"
+    sent_at = datetime.now(timezone.utc) if status == "Sent" else None
+
     new_draft = EmailDraft(
         professor_id=prof.id,
         subject=draft_data.subject,
         body=draft_data.body,
-        status="Draft"
+        status=status,
+        sent_at=sent_at
     )
     db.add(new_draft)
     
-    # Update professor status to Draft_Ready if currently Identified/Reviewing
-    if prof.status in ["Identified", "Reviewing"]:
+    # Update professor status
+    if status == "Sent":
+        prof.status = "Sent"
+    elif prof.status in ["Identified", "Reviewing"]:
         prof.status = "Draft_Ready"
 
     await db.commit()
@@ -178,6 +184,13 @@ async def update_email_draft(
 
     for field, val in updates.model_dump(exclude_unset=True).items():
         setattr(draft, field, val)
+
+    if updates.status == "Sent" and not draft.sent_at:
+        draft.sent_at = datetime.now(timezone.utc)
+        prof_res = await db.execute(select(Professor).where(Professor.id == draft.professor_id))
+        prof = prof_res.scalar_one_or_none()
+        if prof and prof.status != "Replied":
+            prof.status = "Sent"
 
     await db.commit()
     await db.refresh(draft)

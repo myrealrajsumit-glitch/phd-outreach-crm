@@ -11,6 +11,7 @@ class EmailDraftCreate(EmailDraftBase):
     recipient_email: Optional[str] = None
     recipient_name: Optional[str] = None
     institution: Optional[str] = None
+    status: Optional[str] = "Draft"
 
 class EmailDraftUpdate(BaseModel):
     subject: Optional[str] = None

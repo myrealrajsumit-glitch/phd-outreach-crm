@@ -30,6 +30,13 @@ async def get_dashboard_stats(
     stage_counts = {status: count for status, count in status_results}
 
     # Email metrics
+    total_drafts_stmt = (
+        select(func.count(EmailDraft.id))
+        .join(Professor)
+        .where(Professor.user_id == current_user.id, EmailDraft.status == "Draft")
+    )
+    total_drafts = (await db.execute(total_drafts_stmt)).scalar() or 0
+
     total_sent_stmt = (
         select(func.count(EmailDraft.id))
         .join(Professor)
@@ -66,6 +73,7 @@ async def get_dashboard_stats(
     return {
         "overview": {
             "total_professors": total_professors,
+            "total_drafts": total_drafts,
             "total_sent": total_sent,
             "total_scheduled": total_scheduled,
             "total_replied": total_replied,

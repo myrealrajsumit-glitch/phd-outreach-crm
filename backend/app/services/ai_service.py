@@ -154,8 +154,9 @@ Requirements:
 - Target Tone: {tone}
 - Target Word Count: approximately {word_count} words
 - Do NOT use generic marketing phrases (e.g. "I hope this email finds you well", "I was thrilled by your work").
-- Start directly by introducing the candidate's degree and express specific interest in joining their group for a funded PhD position.
-- Cite specific concepts from their papers and connect them directly to the candidate's technical skills or research ideas.
+- Start directly by introducing the candidate's degree (MSc with Merit in Project and Infrastructure Management from Brunel University London | B.E. Civil Engineering Honours) and express specific interest in joining their group for a funded PhD position.
+- Cite specific concepts from their papers and connect them directly to the candidate's concrete technical projects (such as Python/Pandas data pipelines, Random Forest/Decision Tree predictive risk models from Armour Construction, and BIM dissertation research).
+- Emphasize how the candidate's applied AI/ML in engineering decision support bridges theory with real-world infrastructure systems.
 - Provide a clear, polite call-to-action (inquiry on upcoming PhD openings and a request for a brief 15-minute video discussion).
 - Custom User Notes: {custom_instructions if custom_instructions else "None"}
 

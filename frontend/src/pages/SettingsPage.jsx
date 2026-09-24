@@ -56,8 +56,11 @@ const SettingsPage = () => {
       });
       setSmtpForm(prev => ({
         ...prev,
+        smtp_host: user.smtp_host || 'smtp.gmail.com',
+        smtp_port: user.smtp_port || 587,
         smtp_user: user.smtp_user || user.email || '',
-        smtp_from_name: user.full_name || ''
+        smtp_from_name: user.smtp_from_name || user.full_name || '',
+        smtp_use_tls: user.smtp_use_tls ?? true
       }));
     }
 
@@ -246,15 +249,27 @@ const SettingsPage = () => {
             <Mail className="w-4 h-4 text-emerald-600" />
             <span>Direct Outreach SMTP Credentials (Gmail / University Mail)</span>
           </div>
-          <a 
-            href="https://myaccount.google.com/apppasswords" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1"
-          >
-            <span>Google App Passwords</span>
-            <ExternalLink className="w-3 h-3" />
-          </a>
+          <div className="flex items-center gap-2">
+            {user?.smtp_configured ? (
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                Configured & Ready
+              </span>
+            ) : (
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                Pending Setup
+              </span>
+            )}
+            <a 
+              href="https://myaccount.google.com/apppasswords" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 ml-2"
+            >
+              <span>Google App Passwords</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
         </div>
 
         {/* Guidance Banner */}
