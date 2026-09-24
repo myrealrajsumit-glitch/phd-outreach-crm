@@ -1,0 +1,28 @@
+# Git & system
+.git
+.gitignore
+.DS_Store
+
+# Environments and Secrets
+.env
+.env.local
+.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+backend/.venv/
+.venv/
+.pytest_cache/
+tests/
+
+# Node
+frontend/node_modules/
+node_modules/
+frontend/dist/
+
+# Documentation & Logs
+*.log
+scratch/
+brain/
