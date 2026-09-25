@@ -19,7 +19,16 @@ An academic relationship management platform and AI-powered cold outreach intell
 - **FastAPI + React 18**: High performance asynchronous Python backend serving a modern Tailwind-styled Single Page Application.
 
 ## Configuration & Secrets
-When deploying on Hugging Face Spaces, configure these in **Settings → Variables and Secrets**:
+When deploying on Hugging Face Spaces or Render, configure these in **Settings → Variables and Secrets**:
 - `GEMINI_API_KEY_01` through `GEMINI_API_KEY_06`
 - `SECRET_KEY`
 - `ENVIRONMENT` (set to `production`)
+
+## Deploying Frontend on Vercel
+1. Import your GitHub repository into [Vercel](https://vercel.com).
+2. Vercel will automatically detect `vercel.json` and build the frontend.
+   - If importing with **Root Directory** set to `frontend`: Framework will be detected as **Vite**, build directory as `dist`.
+3. Add the environment variable in Vercel Project Settings:
+   - `VITE_API_BASE_URL`: `https://your-backend.onrender.com/api` (URL of your live FastAPI backend)
+4. Deploy! The frontend will serve on your custom or `.vercel.app` domain with instant CDN caching and SPA client-side routing.
+

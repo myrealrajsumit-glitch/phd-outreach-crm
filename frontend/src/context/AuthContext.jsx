@@ -39,8 +39,36 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const login = async (email, password) => {
+    const res = await api.post('/auth/login', { email, password });
+    if (res.data?.access_token) {
+      localStorage.setItem('token', res.data.access_token);
+    }
+    if (res.data?.user) {
+      setUser(res.data.user);
+    }
+    return res.data;
+  };
+
+  const register = async (userData) => {
+    const res = await api.post('/auth/register', userData);
+    if (res.data?.access_token) {
+      localStorage.setItem('token', res.data.access_token);
+    }
+    if (res.data?.user) {
+      setUser(res.data.user);
+    }
+    return res.data;
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('access_token');
+    setUser(null);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, updateProfile }}>
+    <AuthContext.Provider value={{ user, loading, updateProfile, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
