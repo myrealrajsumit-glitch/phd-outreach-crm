@@ -67,7 +67,7 @@ const EmailCenterPage = () => {
     const text = `Subject: ${draft.subject}\n\n${draft.body}`;
     navigator.clipboard.writeText(text);
     setCopiedId(draft.id);
-    toast.success("Email copied! Ready to paste into Gmail.", { icon: '📋' });
+    toast.success("Email copied to clipboard!", { icon: '📋' });
     setTimeout(() => setCopiedId(null), 3000);
   };
 
@@ -166,7 +166,7 @@ const EmailCenterPage = () => {
             </h3>
             <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1 mb-4">
               {activeTab === 'Sent'
-                ? "When you send an outreach via SMTP or click 'Open in Gmail (1-Click)' and mark as Sent, your dispatched emails will appear here."
+                ? "When you send an outreach via Instant Send or Smart Schedule, your dispatched emails will appear here."
                 : "Click 'Compose Email' to draft personalized outreach or autofill from previous outreach."}
             </p>
             <button
@@ -268,7 +268,7 @@ const EmailCenterPage = () => {
                           ? 'bg-emerald-50 border-emerald-300 text-emerald-700 font-bold'
                           : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-2xs'
                       }`}
-                      title="Copy to clipboard for Gmail"
+                      title="Copy email to clipboard"
                     >
                       {copiedId === draft.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
                       <span>{copiedId === draft.id ? "Copied!" : "Copy"}</span>

@@ -109,7 +109,7 @@ const ProfessorDetailPage = () => {
     }
   };
 
-  const handleCopyForGmail = () => {
+  const handleCopyEmail = () => {
     if (!body) {
       toast.error("Draft is empty.");
       return;
@@ -117,7 +117,7 @@ const ProfessorDetailPage = () => {
     const fullText = `Subject: ${subject}\n\n${body}`;
     navigator.clipboard.writeText(fullText);
     setCopied(true);
-    toast.success("Copied to clipboard! Ready to paste into Gmail.", { icon: '📋' });
+    toast.success("Copied to clipboard!", { icon: '📋' });
     setTimeout(() => setCopied(false), 3000);
   };
 
@@ -160,7 +160,39 @@ const ProfessorDetailPage = () => {
       fetchProfessor();
     } catch (err) {
       console.error(err);
-      toast.error(formatErrorMessage(err, "Dispatch failed. (You can also copy to Gmail directly)."));
+      toast.error(formatErrorMessage(err, "Instant dispatch failed. Check SMTP credentials in Settings."));
+    }
+  };
+
+  const handleSmartSchedule = async () => {
+    if (!subject || !body) {
+      toast.error("Please provide both subject and body.");
+      return;
+    }
+    try {
+      const schedRes = await api.post('/emails/analyze-schedule', {
+        email: professor.email,
+        institution: professor.institution
+      });
+      const sched = schedRes.data;
+
+      const draftRes = await api.post('/emails', {
+        professor_id: parseInt(id),
+        subject,
+        body
+      });
+      const draftId = draftRes.data.id;
+
+      await api.post('/emails/send', {
+        draft_id: draftId,
+        send_now: false,
+        scheduled_for: sched.scheduled_iso
+      });
+      toast.success(`Scheduled for ${sched.optimal_slot_local} (Local) / ${sched.optimal_slot_ist} (IST)!`, { icon: '📅' });
+      fetchProfessor();
+    } catch (err) {
+      console.error(err);
+      toast.error(formatErrorMessage(err, "Failed to schedule email."));
     }
   };
 
@@ -334,7 +366,7 @@ const ProfessorDetailPage = () => {
                     <span>Outreach & Follow-Up Email Drafter</span>
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Draft, refine, send, or copy-paste directly to your personal Gmail client
+                    Draft, refine, send instantly, or schedule at the professor's local morning time
                   </p>
                 </div>
               </div>
@@ -407,20 +439,20 @@ const ProfessorDetailPage = () => {
             {/* Bottom Actions */}
             <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
               <div className="text-[11px] text-slate-500">
-                Tip: Use <strong>"Copy for Gmail"</strong> to paste directly into your email client.
+                Outreach Options: Instant SMTP send or Smart Schedule (Friday protected).
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={handleCopyForGmail}
+                  onClick={handleCopyEmail}
                   className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all ${
                     copied
                       ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
                       : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800 shadow-2xs'
                   }`}
-                  title="Copy full message to paste into Gmail"
+                  title="Copy full message to clipboard"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-600" />}
-                  <span>{copied ? "Copied!" : "Copy for Gmail"}</span>
+                  <span>{copied ? "Copied!" : "Copy Text"}</span>
                 </button>
 
                 <button
@@ -432,11 +464,21 @@ const ProfessorDetailPage = () => {
                 </button>
 
                 <button
+                  onClick={handleSmartSchedule}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5"
+                  title="Schedule at professor's local morning time (Tuesday-Thursday)"
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>📅 Smart Schedule</span>
+                </button>
+
+                <button
                   onClick={handleSendNow}
                   className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5"
+                  title="Send immediately via configured SMTP"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>Send to Professor</span>
+                  <span>⚡ Send Instant</span>
                 </button>
               </div>
             </div>

@@ -5,7 +5,7 @@ rawBaseUrl = rawBaseUrl.trim();
 if (rawBaseUrl.endsWith('/')) {
   rawBaseUrl = rawBaseUrl.slice(0, -1);
 }
-// If an absolute domain was provided without /api (e.g. https://my-backend.onrender.com), append /api
+// If an absolute domain was provided without /api (e.g. https://my-backend.domain.com), append /api
 const baseURL = (!rawBaseUrl.startsWith('/') && !rawBaseUrl.endsWith('/api'))
   ? `${rawBaseUrl}/api`
   : rawBaseUrl;

@@ -280,12 +280,12 @@ const SettingsPage = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px] leading-relaxed">
             <div className="bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs">
-              <strong className="text-blue-800 block mb-1">🚀 Option 1: 1-Click Gmail (Zero Setup)</strong>
-              In the email composer, click <strong>"Open in Gmail (1-Click)"</strong> to immediately open your official Gmail compose tab with the professor, subject, and AI draft pre-populated. 100% delivered from your genuine personal account.
+              <strong className="text-blue-800 block mb-1">⚡ Option 1: Instant Email Dispatch (SMTP)</strong>
+              Send outreach immediately directly through your configured personal or university SMTP relay with delivery tracking in your CRM outbox.
             </div>
             <div className="bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs">
-              <strong className="text-emerald-800 block mb-1">⚡ Option 2: Automated In-App Dispatch (SMTP)</strong>
-              To send emails automatically directly from the CRM, configure your Gmail SMTP below using a 16-character <strong>App Password</strong> (generate at Google Account → Security → 2-Step Verification → App Passwords).
+              <strong className="text-indigo-800 block mb-1">📅 Option 2: Smart Timezone Schedule</strong>
+              The system automatically detects destination country and timezone, queues delivery for 08:45 AM professor local time, and strictly protects against Friday or weekend dispatch.
             </div>
           </div>
         </div>

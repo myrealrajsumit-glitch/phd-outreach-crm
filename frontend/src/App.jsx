@@ -32,6 +32,7 @@ function App() {
                   <Route path="/emails" element={<EmailCenterPage />} />
                   <Route path="/templates" element={<TemplatesPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/candidate" element={<Navigate to="/settings" replace />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </AppLayout>

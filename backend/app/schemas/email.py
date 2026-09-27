@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, ConfigDict
+from typing import Optional, List, Any
 from datetime import datetime
 
 class EmailDraftBase(BaseModel):
@@ -33,8 +33,7 @@ class EmailDraftResponse(EmailDraftBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TemplateBase(BaseModel):
     name: str
@@ -51,8 +50,7 @@ class TemplateResponse(TemplateBase):
     user_id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class SendEmailRequest(BaseModel):
     draft_id: int
@@ -63,3 +61,40 @@ class BatchSendRequest(BaseModel):
     draft_ids: list[int]
     interval_seconds: int = 60
     start_immediately: bool = True
+
+class ScheduleAnalysisRequest(BaseModel):
+    email: str
+    institution: Optional[str] = None
+
+class ScheduleAnalysisResponse(BaseModel):
+    country: str
+    city: str
+    timezone: str
+    matched_by: str
+    diff_hours_str: str
+    activity_state: str
+    current_local_time: str
+    current_ist_time: str
+    optimal_slot_local: str
+    optimal_slot_ist: str
+    scheduled_iso: str
+    scheduled_utc: str
+    reasoning: List[str]
+    friday_protected: bool
+
+class SpamCheckRequest(BaseModel):
+    subject: str
+    body: str
+    recipient_name: Optional[str] = None
+    recipient_email: Optional[str] = None
+
+class SpamCheckResponse(BaseModel):
+    deliverability_score: int
+    rating: str
+    badge: str
+    color: str
+    word_count: int
+    flags: List[str]
+    suggestions: List[str]
+    positive_signals: List[str]
+    is_safe_to_send: bool

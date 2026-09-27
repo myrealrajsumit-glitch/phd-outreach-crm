@@ -30,20 +30,39 @@ class MailService:
         try:
             message = EmailMessage()
             message["From"] = f"{smtp_from_name} <{smtp_user}>"
-            message["To"] = recipient_email
+            message["To"] = recipient_email.strip()
             message["Subject"] = subject
             message.set_content(body)
+
+            # In SMTP: Port 465 uses direct SSL (use_tls=True, start_tls=False)
+            # Port 587 uses STARTTLS (use_tls=False, start_tls=True)
+            use_ssl = int(smtp_port) == 465
+            use_starttls = (int(smtp_port) == 587) or (bool(smtp_use_tls) and not use_ssl)
 
             await aiosmtplib.send(
                 message,
                 hostname=smtp_host,
-                port=smtp_port,
-                username=smtp_user,
-                password=smtp_password,
-                start_tls=smtp_use_tls
+                port=int(smtp_port),
+                username=smtp_user.strip(),
+                password=smtp_password.strip(),
+                use_tls=use_ssl,
+                start_tls=use_starttls,
+                timeout=25
             )
             logger.info(f"Email successfully sent to {recipient_email}")
             return True, None
+        except aiosmtplib.errors.SMTPAuthenticationError as e:
+            err_msg = f"SMTP Authentication Failed: Username or App Password rejected by {smtp_host}. Please verify your Gmail 16-character App Password in Settings."
+            logger.error(f"{err_msg} - {e}")
+            return False, err_msg
+        except aiosmtplib.errors.SMTPServerDisconnected as e:
+            err_msg = f"SMTP Server Disconnected: Connection closed unexpectedly by {smtp_host} on port {smtp_port}."
+            logger.error(f"{err_msg} - {e}")
+            return False, err_msg
+        except aiosmtplib.errors.SMTPConnectError as e:
+            err_msg = f"SMTP Connection Failed: Unable to connect to {smtp_host} on port {smtp_port}. Details: {e}"
+            logger.error(err_msg)
+            return False, err_msg
         except Exception as e:
             logger.error(f"Failed to send email to {recipient_email}: {e}")
             return False, str(e)

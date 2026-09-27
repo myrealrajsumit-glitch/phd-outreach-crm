@@ -1,119 +1,129 @@
 # Product Requirements Document (PRD)
-## PhD Professor Review & Cold Outreach Intelligence CRM
+## PhD Professor Review & Intelligent Cold Outreach CRM
 
 ---
 
 ### 1. WHAT TO BUILD
 
 #### 1.1 Product Definition
-The **PhD Professor Review & Cold Outreach Intelligence CRM** is a purpose-built, academic-grade relationship management and communication intelligence platform for prospective PhD applicants. It empowers scholars to research professors, systematically analyze faculty publications and research alignment, draft hyper-personalized academic cold emails powered by Google Gemini AI, track multi-stage email interactions, and execute scheduled or timed batch sending with strict deliverability and academic etiquette safeguards.
+The **PhD Professor Review & Intelligent Cold Outreach CRM** is an academic-grade relationship management and communication intelligence platform engineered specifically for prospective PhD applicants and research fellowship seekers. It bridges research discovery, faculty publication analysis, timezone-intelligent outreach scheduling, and email deliverability engineering into a unified, high-performance workspace.
 
 #### 1.2 Core Purpose
-Securing fully funded doctoral positions, research assistantships, and advisor sponsorship requires establishing meaningful scholarly connections with faculty. Applicants face two fatal bottlenecks:
-1. **Research & Review Overhead**: Spending countless hours reading papers, deciphering lab directions, and manually assessing whether a professor's current research agenda aligns with the candidate's background.
-2. **Outreach & Pipeline Chaos**: Managing cold emails across disparate spreadsheets, forgetting follow-ups, risking generic spam that gets immediately discarded, or sending emails at inappropriate times without tracking responses.
+Securing fully funded doctoral positions, research assistantships (RA), and faculty advisor sponsorship requires establishing credible scholarly connections with faculty. Prospective applicants face four critical failure points:
+1. **Timezone Disconnect (The "India-to-Global" Gap)**: Applicants (particularly in South Asia / India) operate in opposite circadian cycles to institutions in North America and Western Europe. Cold emails sent during Indian daytime arrive in professors' inboxes at 2:00 AM or 3:00 AM local time, getting pushed down into oblivion by morning spam and department memos.
+2. **The University Spam Shield Trap**: University mail relays (Proofpoint, Barracuda, Microsoft Defender for Office 365, Google Workspace for Education) employ aggressive spam filtering heuristics. Cold emails featuring generic greetings ("Respected Sir/Madam"), spam buzzwords ("urgent", "100% scholarship", "free funding"), tracking pixels, or high-pressure phrasing are immediately routed to Spam or Quarantine folders, never reaching faculty eyes.
+3. **The Friday Outreach Mistake**: Faculty inboxes on Friday are dominated by end-of-week deadlines, grading, and weekend prep. Emails sent on Friday afternoon or evening have a dismal open rate (<12%) and remain buried under Monday morning departmental backlogs.
+4. **Research Alignment Overhead**: Evaluating whether a professor's current lab trajectory matches the applicant's background requires deciphering dozens of recent papers, leading to generic emails that faculty immediately discard.
 
-This platform bridges that gap by merging an **Academic Research Review Engine** with an **Intelligent Cold Outreach CRM**, leveraging Gemini models to synthesize papers, pinpoint collaboration angles, generate high-impact scholarly emails, and manage the full outreach lifecycle in one centralized, high-density interface.
+This platform resolves these challenges through a **Smart Timezone & Country Intelligence Engine**, an **Academic Anti-Spam Protocol & Deliverability Validator**, and a **Gemini AI-Powered Research Co-Pilot**.
 
 #### 1.3 Key Product Goals
-- **Deep Professor Review**: Provide structured dossier cards for each professor containing university, department, lab focus, recent papers (titles, abstracts, DOIs), funding indicators, and match rating.
-- **Gemini AI Research & Outreach Co-Pilot**: Utilize Google Gemini (using the multi-key pool) to analyze faculty papers against the candidate's CV/statement, generate bespoke academic inquiry emails, and suggest precise research discussion questions.
-- **Full-Funnel CRM Pipeline**: Track every professor through progressive stages: `Identified` ➔ `Reviewing` ➔ `Draft Prepared` ➔ `Scheduled` ➔ `Sent` ➔ `Opened/Replied` ➔ `Interview Scheduled` ➔ `Offer/Accepted` / `Archived`.
-- **Intelligent Timed & Batch Sending**: Enable sending personalized emails individually or queued in timed batches (with automated spacing and timezone awareness) to prevent spam flags and honor academic sending etiquette.
-- **Interaction History & Follow-Up System**: Log all email dispatches, replies, follow-up dates, notes, and professor feedback.
-- **Zero-Hallucination & Human-in-the-Loop Guarantee**: Ensure that every AI-generated citation and statement is grounded in real provided papers, with mandatory candidate review and approval before any email can be dispatched.
+- **Smart Timezone & Country Detection**: Automatically resolve target country, city, and institution timezone directly from the professor's email domain (e.g., `ox.ac.uk` ➔ UK, `stanford.edu` ➔ US Pacific, `tum.de` ➔ Germany).
+- **Dual-Action Outreach Interface**: Provide two explicit, unmistakable dispatch pathways:
+  1. **Send Instant Email**: Dispatches immediately via configured secure SMTP credentials.
+  2. **Smart Schedule Email**: Automatically schedules delivery in the professor's peak inbox-review window (08:30 AM – 09:30 AM local destination time) while converting transparently to India Standard Time (IST).
+- **Strict Inviolable Scheduling Rules**: Absolutely zero outreach scheduling on Fridays or weekends. If an outreach is planned on Thursday afternoon or Friday, the system automatically advances to Tuesday morning (the statistically highest response window in academia).
+- **Anti-Spam & Deliverability Defense**: A built-in heuristic deliverability analyzer that calculates a Spam Risk Score (0-100%), flags dangerous trigger words, enforces academic salutation standards, and guarantees clean deliverability without tracking pixels or suspicious attachments.
+- **Deep Professor Dossier**: Catalog professors with laboratory focus, research keywords, recent publications, and candidate compatibility notes.
+- **Removal of Disconnected "Open in Gmail" Workarounds**: Eliminate external browser hops and keep full tracking and sending reliability native to the CRM.
+- **Robust Local-First Backend**: High-performance async FastAPI backend with SQLite persistence, zero cloud deployment bloat, and total privacy for applicant research data.
 
 ---
 
 ### 2. TARGETED USER
 
 #### 2.1 Primary Audience
-- **Prospective PhD Candidates**: Master's students, postgraduates, and undergraduate seniors seeking funded PhD positions, research assistantships (RA), and faculty advisor mentorship globally.
-- **Postdoctoral & Research Fellowship Applicants**: Early-career researchers reaching out to principal investigators (PIs) for lab positions.
-- **Academic Mentors & Counselors**: Advisors assisting cohorts of students in managing their graduate school application pipelines.
+- **Prospective PhD Candidates**: Master's students, postgraduates, and undergraduate seniors seeking funded PhD positions and research assistantships globally (especially applicants applying from India and international timezones to North America, UK, Europe, and Asia-Pacific).
+- **Postdoctoral & Research Fellowship Seekers**: PhD graduates reaching out to Principal Investigators (PIs) for specialized post-doc lab appointments.
+- **Academic Mentors & Guidance Counselors**: Academic advisors managing candidate cohorts through doctoral admissions outreach.
 
 #### 2.2 User Personas
 
-##### Persona A: The Dedicated PhD Aspirant ("Arjun")
-- **Background**: Master of Science graduate in Computer Science / AI seeking a funded PhD in Europe or North America.
-- **Needs**:
-  - A single dashboard to catalog 40+ target professors across 15 institutions.
-  - Quick summary and critical analysis of each professor's 2-3 most recent publications.
-  - AI assistance in crafting emails that reference specific methodology details rather than generic flattery.
-  - Automated tracking of when emails were sent and automated alerts when follow-ups are due.
-- **Frustrations**:
-  - Lost tracking across messy spreadsheets.
-  - Writer's block when drafting tailored emails.
-  - Uncertainty about whether emails were delivered, opened, or ignored.
+##### Persona A: The International PhD Aspirant ("Arjun")
+- **Profile**: Final-year Master's in Computer Science student based in Bengaluru, India (IST timezone). Target: 40 AI/ML faculty across US and European universities.
+- **Pain Points**:
+  - Struggles with time difference: Sends emails at 2:00 PM IST (which is 4:30 AM in Boston or 1:30 AM in Stanford), causing emails to be buried before professors wake up.
+  - Emails constantly end up in Spam because of unvetted phrasing ("Respected Sir", "Kindly revert back", "Need urgent consideration").
+  - Anxious about sending emails on Friday that get ignored over the weekend.
+- **How This CRM Solves It**:
+  - Arjun simply enters `prof@cs.cmu.edu`. The system detects **United States (US Eastern / America/New_York)**, compares it with IST (+9.5 hours), and automatically schedules the email for **Tuesday at 8:45 AM EDT (6:15 PM IST)**.
+  - The Anti-Spam Meter scores his draft in real-time, alerts him to remove "Respected Sir", and suggests "Dear Professor CMU_Name".
 
-##### Persona B: The Cross-Discipline Scholar ("Elena")
-- **Background**: Computational Biology researcher applying to both Computer Science and Bioengineering departments.
-- **Needs**:
-  - Tagging and categorizing professors by research cluster (e.g., "Genomics", "Structural Bio", "Diff Models").
-  - Tailoring email tone and CV emphasis depending on the department's disciplinary lean.
-  - Managing multiple resume versions and targeted email templates.
+##### Persona B: The Specialized Systems Scholar ("Priya")
+- **Profile**: Research engineer targeting specialized European labs in Switzerland (ETH Zurich), Germany (TUM), and the UK (Oxford).
+- **Pain Points**:
+  - Fragmented records across spreadsheets; loses track of who replied and who needs a 10-day follow-up.
+  - Does not know whether to send immediately or schedule according to European working hours.
+- **How This CRM Solves It**:
+  - Visual Kanban pipeline tracks each professor from `Identified` ➔ `Reviewing` ➔ `Draft_Ready` ➔ `Scheduled` ➔ `Sent` ➔ `Replied`.
+  - Smart scheduler detects `.ch` and `.de` domains and provides one-click instant send or automated morning European dispatch.
 
 ---
 
 ### 3. FEATURES
 
-#### 3.1 Professor Review & Dossier Management
-- **Professor Database (CRUD)**: Create, view, update, and manage professor profiles with:
-  - Full Name, Title, Institution, Department, Official Webpage URL, Lab Website URL.
-  - Verified Email Address, Secondary Contact/Lab Coordinator.
-  - Research Keywords / Topic Tags (e.g., "Reinforcement Learning", "Cryo-EM", "NLP").
-  - Current Accepting Students Status (`Yes`, `No`, `Unknown`, `Grant Funded`).
-- **Research Paper Review Deck**:
-  - Add recent publication metadata (Title, Year, Venue, Abstract, DOI/Link, Key Findings).
-  - Review notes area: Candidate's reflections, strengths, potential research proposals.
-  - Compatibility & Alignment Score (1 to 10 rating based on candidate interest & background overlap).
+#### 3.1 Smart Country, Timezone & Scheduling System ("Thinking Engine")
+- **Automatic Email Domain Resolution**:
+  - Inspects the recipient email address (e.g., `smith@berkeley.edu`, `johnson@cam.ac.uk`, `weber@tum.de`, `tan@nus.edu.sg`).
+  - Matches against an embedded database of over 100 top global academic institutions and ccTLDs (`.edu`, `.ac.uk`, `.de`, `.ch`, `.ca`, `.fr`, `.nl`, `.se`, `.au`, `.sg`, `.jp`, etc.).
+  - Extracts target Country, City/Campus, and canonical IANA Timezone.
+- **Circadian Clock Bridge (India Standard Time ➔ Local University Time)**:
+  - Continuously calculates the real-time offset between candidate's local time (IST, UTC+5:30) and the professor's local time.
+  - Displays a visual badge: e.g., *"Detected: United States (US Pacific) • Professor's time: 11:45 PM (Sleeping) • Candidate time: 3:15 PM IST"*.
+- **Optimal Academic Delivery Windows**:
+  - Target sending window: **08:30 AM – 09:30 AM** local time on working weekdays.
+  - Prime delivery slot: 08:45 AM local time, ensuring the message arrives right as faculty unlock their laptops before morning classes or lab meetings.
+- **Inviolable Friday & Weekend Protection**:
+  - **Rule**: NEVER schedule or dispatch outreach on Friday.
+  - If a schedule is triggered on Thursday afternoon, Friday, or over the weekend, the engine automatically rolls forward to **Tuesday 08:45 AM** local time.
+  - Tuesday is proven across academic communication studies to yield the highest faculty response rate.
+- **Dual-Action Dispatch Interface**:
+  - **Option 1: ⚡ Send Instant Email**: Dispatches immediately via configured SMTP credentials.
+  - **Option 2: 📅 Smart Schedule Email**: Automatically commits the draft to the background queue with the exact computed optimal timestamp.
+  - **Clean UI**: 100% removal of obsolete "Open in Gmail" buttons.
 
-#### 3.2 Gemini AI Research & Outreach Co-Pilot
-- **Multi-Key Gemini Engine**: Connects to the user's Gemini API key pool (`gemini-2.0-flash`, `gemini-1.5-pro`) with automated round-robin and rate-limit fallbacks.
-- **AI Paper Alignment Analysis**: Analyzes the professor's paper abstracts and highlights:
-  - Core methodology and problem statement.
-  - Potential research gaps where the candidate's skills fit.
-  - 2-3 specific technical discussion questions for cold emails.
-- **Context-Aware Email Drafter**:
-  - Generates bespoke, scholarly cold emails incorporating:
-    - Candidate's background (education, thesis, tech stack, publications).
-    - Professor's exact paper contribution and relevance.
-    - Tailored subject line (high open-rate academic conventions).
-    - Call-to-action (brief 15-minute video call or inquiry on PhD openings for upcoming intake).
-- **Tone & Length Customizer**: Toggle email styles (Formal Academic, Concise/Direct, Technical Focus) and length (150 words, 250 words, 350 words).
-- **AI Email Polish & Critique**: Critiques user drafts for tone, clarity, academic etiquette, and spam-trigger words.
+#### 3.2 Academic Anti-Spam Protocol & Deliverability Defense Engine
+- **Academic Deliverability Analyzer**:
+  - Evaluates outgoing email drafts against institutional spam heuristics before sending or scheduling.
+  - Generates an **Inbox Deliverability Score (0 – 100%)** and categorical rating (`Excellent`, `Good`, `Needs Revision`, `High Spam Risk`).
+- **Spam Trigger Word & Desperation Phrase Detection**:
+  - Flags high-risk vocabulary commonly found in spam student cold emails: *"100% scholarship"*, *"free funding"*, *"urgent response needed"*, *"kindly revert back"*, *"respected sir"*, *"sir/madam"*, *"give me a chance"*, *"beg to state"*.
+- **Academic Etiquette & Salutation Verification**:
+  - Enforces proper academic honorifics (`Dear Professor [Last Name]` or `Dear Dr. [Last Name]`).
+  - Flags generic greetings (`Dear Sir`, `Respected Professor`, `To Whom It May Concern`) that trigger spam heuristics and immediate cognitive dismissal.
+- **Formatting & Technical Deliverability Standards**:
+  - Plain-text optimized: Zero hidden tracking pixels, zero tracking redirects that trigger institutional firewall blocks.
+  - Link hygiene: Recommends maximum 1-2 clean academic URLs (e.g., candidate's Google Scholar, GitHub, or institutional lab page). Prohibits URL shorteners (`bit.ly`, `tinyurl`).
+  - Word count validator: Optimal range of 150 – 250 words. Alerts the user if text is too short (<80 words, flags low effort) or too long (>350 words, causes skim-and-delete behavior).
+- **Subject Line Recommendation Protocol**:
+  - Validates subject line against established academic high-open-rate formulas:
+    - `Prospective PhD Inquiry - [Specific Research Subfield] - [Candidate Name]`
+    - `PhD Applicant (Fall 2026): [Candidate Research Focus] - Inquiry for Prof. [Last Name]`
+  - Rejects spammy subjects with exclamation marks, all-caps words, or desperate language (`URGENT Inquiry`, `PhD Admission request please help`).
 
-#### 3.3 Email CRM & Pipeline Tracking
-- **Visual Funnel / Kanban & Table Views**:
-  - `Identified`: Initial discovery, profile created.
-  - `Reviewing`: Reading papers and taking notes.
-  - `Drafting`: Email draft generated or in preparation.
-  - `Scheduled`: In outgoing queue for timed dispatch.
-  - `Sent`: Successfully sent to professor.
-  - `Replied`: Professor responded (sub-states: Interested, Meeting Scheduled, Not Accepting Students, Forwarded to Colleague).
-  - `Follow-Up Needed`: Triggered after $N$ business days without reply.
-  - `Closed/Archived`: Outcome recorded.
-- **Interaction History Timeline**: Timestamped audit trail of every status change, email draft version, sent message, note, and reply.
+#### 3.3 Professor Dossier & Research Review Hub
+- **Professor Catalog (CRUD)**:
+  - Store full profile: Name, Title, Institution, Department, Lab Website, Verified Email Address.
+  - Research Keywords & Domain Tags (e.g., `Reinforcement Learning`, `Distributed Systems`, `Genomics`).
+  - Student intake status: `Accepting Students`, `Funding Uncertain`, `Sabbatical`, `Unknown`.
+- **Publication Deck**:
+  - Catalog recent papers (Title, Venue, Year, Abstract, DOI link).
+  - Add personal reading notes, research gap hypotheses, and candidate synergy notes.
+  - Compatibility rating (1 to 10 scale).
 
-#### 3.4 Email Creation, Batch Dispatch & Scheduling
-- **Rich-Text Email Editor**: In-app compose window with variable placeholders (`{{professor_name}}`, `{{paper_title}}`, `{{institution}}`, `{{candidate_degree}}`).
-- **SMTP / Direct Email Integration**:
-  - Configure personal or institutional email via SMTP/IMAP (Gmail App Password, Outlook, Custom Academic SMTP).
-  - Test connection and verify sender identity.
-- **Batch Sending Queue**:
-  - Select multiple reviewed professors and queue customized drafts.
-  - **Timed Staggering**: Configurable dispatch intervals (e.g., 60-120 seconds between emails) to mimic natural human sending and safeguard mailbox deliverability.
-  - **Daily Velocity Caps**: Hard limits (e.g., max 25 emails/day) to prevent domain burn.
-  - **Timezone Scheduling**: Schedule dispatches to match the professor's local institution business hours (e.g., Tuesday at 9:15 AM EST).
+#### 3.4 Gemini AI Research & Outreach Co-Pilot
+- **Multi-Key Pool Engine**:
+  - Connects to user's Google Gemini API key pool (`gemini-2.0-flash`) with automatic failover and exponential backoff.
+- **Grounded Research Hook Drafter**:
+  - Synthesizes candidate's background with the professor's real published paper.
+  - Produces tailored inquiry drafts that reference exact methodological contributions rather than superficial praise.
+- **AI Deliverability & Polish Co-Pilot**:
+  - Reviews candidate-typed emails and suggests edits to maximize deliverability and scholarly tone.
 
-#### 3.5 Templates & Candidate Profile Management
-- **Candidate Profile Vault**: Store candidate's bio, CV, research interests, GPA/honors, portfolio/GitHub link, and PDF CV attachments.
-- **Template Library**: Pre-built and customizable academic email templates:
-  - First Inquiry (Direct Advisor Sponsorship).
-  - Inquiry with Pre-Proposal / Ideas.
-  - Polite 10-Day Follow-Up.
-  - Acknowledgment of Rejection / Forwarding Request.
-
-#### 3.6 Analytics & Oversight
-- **Real-Time Funnel Metrics**: Total professors reviewed, emails sent, reply rate (%), positive response rate, average response latency.
-- **Export & Backup**: Export CRM records to CSV/JSON; complete database backup and restore capabilities.
+#### 3.5 Pipeline CRM & Email Dispatch Center
+- **Funnel Progression**:
+  - `Identified` ➔ `Reviewing` ➔ `Draft_Ready` ➔ `Scheduled` ➔ `Sent` ➔ `Replied` ➔ `Interview Scheduled` ➔ `Closed`.
+- **Staggered Queue Dispatcher**:
+  - Automated background worker handles scheduled dispatches with humanized intervals (45–120 seconds) to prevent SMTP relay rate limits.
+- **Audit History**:
+  - Timestamped logs of every interaction, status update, and scheduled delivery.

@@ -11,9 +11,13 @@ from app.models.email import EmailDraft, EmailTemplate
 from app.models.queue import QueueItem
 from app.schemas.email import (
     EmailDraftCreate, EmailDraftUpdate, EmailDraftResponse,
-    TemplateCreate, TemplateResponse, SendEmailRequest, BatchSendRequest
+    TemplateCreate, TemplateResponse, SendEmailRequest, BatchSendRequest,
+    ScheduleAnalysisRequest, ScheduleAnalysisResponse,
+    SpamCheckRequest, SpamCheckResponse
 )
 from app.services.mail_service import mail_service
+from app.services.smart_scheduler import smart_scheduler
+from app.services.spam_checker import spam_checker
 
 router = APIRouter(prefix="/emails", tags=["Emails"])
 
@@ -52,18 +56,22 @@ async def create_email_draft(
 
     if not prof and draft_data.recipient_email:
         clean_email = draft_data.recipient_email.strip().lower()
-        stmt = select(Professor).where(Professor.email == clean_email, Professor.user_id == current_user.id)
+        stmt = select(Professor).where(func.lower(Professor.email) == clean_email, Professor.user_id == current_user.id)
         res = await db.execute(stmt)
         prof = res.scalar_one_or_none()
 
         if not prof:
             username = clean_email.split('@')[0]
+            domain = clean_email.split('@')[1] if '@' in clean_email else ''
             parts = [part.capitalize() for part in username.replace('.', ' ').replace('_', ' ').split() if part]
-            name = draft_data.recipient_name or (f"Prof. {' '.join(parts)}" if parts else "Faculty Member")
-            inst = draft_data.institution or "Academic Department"
-            if '@' in clean_email:
-                domain = clean_email.split('@')[1]
-                inst = domain.replace('.edu', ' University').replace('.ac.uk', ' University').replace('.org', '').title()
+            
+            is_common_webmail = domain in ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'proton.me']
+            if is_common_webmail:
+                name = draft_data.recipient_name or (' '.join(parts) if parts else clean_email)
+                inst = "Direct Contact"
+            else:
+                name = draft_data.recipient_name or (f"Prof. {' '.join(parts)}" if parts else "Faculty Member")
+                inst = draft_data.institution or domain.replace('.edu', ' University').replace('.ac.uk', ' University').replace('.org', '').title()
 
             prof = Professor(
                 user_id=current_user.id,
@@ -211,6 +219,38 @@ async def delete_email_draft(
     await db.delete(draft)
     await db.commit()
     return {"success": True, "message": "Draft deleted"}
+
+@router.post("/analyze-schedule", response_model=ScheduleAnalysisResponse)
+async def analyze_schedule(
+    req: ScheduleAnalysisRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Detects recipient country, city, timezone, current activity state,
+    and computes the optimal academic delivery window (strictly avoiding Friday & weekend).
+    """
+    res = smart_scheduler.calculate_optimal_schedule(
+        email=req.email,
+        institution=req.institution
+    )
+    return res
+
+@router.post("/check-spam", response_model=SpamCheckResponse)
+async def check_email_spam(
+    req: SpamCheckRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Evaluates outreach subject and body against university spam heuristics,
+    academic etiquette rules, and deliverability risk.
+    """
+    analysis = spam_checker.analyze(
+        subject=req.subject,
+        body=req.body,
+        recipient_name=req.recipient_name,
+        recipient_email=req.recipient_email
+    )
+    return analysis
 
 @router.post("/send")
 async def send_email_draft(

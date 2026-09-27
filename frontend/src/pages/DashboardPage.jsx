@@ -225,7 +225,7 @@ const DashboardPage = () => {
             <div className="space-y-2 text-xs text-slate-700">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>One-click Gmail copy-paste support</span>
+                <span>Smart Timezone Scheduling & Anti-Spam Verification</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
