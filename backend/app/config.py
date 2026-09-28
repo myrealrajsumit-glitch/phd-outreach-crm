@@ -7,6 +7,19 @@ from pydantic_settings import BaseSettings
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 ENV_FILE = BASE_DIR / ".env"
 
+def resolve_database_url() -> str:
+    if os.environ.get("VERCEL"):
+        tmp_db = Path("/tmp/phd_crm.db")
+        source_db = BASE_DIR / "phd_crm.db"
+        if not tmp_db.exists() and source_db.exists():
+            import shutil
+            try:
+                shutil.copyfile(source_db, tmp_db)
+            except Exception as e:
+                print(f"Notice: copying initial db to /tmp: {e}")
+        return f"sqlite+aiosqlite:///{tmp_db.as_posix()}"
+    return f"sqlite+aiosqlite:///{(BASE_DIR / 'phd_crm.db').as_posix()}"
+
 class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"
@@ -21,8 +34,8 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     
-    # Database - Absolute canonical path
-    DATABASE_URL: str = f"sqlite+aiosqlite:///{(BASE_DIR / 'phd_crm.db').as_posix()}"
+    # Database - Absolute canonical path (uses /tmp on Vercel serverless)
+    DATABASE_URL: str = resolve_database_url()
     
     # Gemini API Keys (Multi-Key Pool)
     GEMINI_API_KEY_01: str = ""

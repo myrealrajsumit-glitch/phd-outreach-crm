@@ -10,10 +10,12 @@ from app.config import settings
 async def lifespan(app: FastAPI):
     # Startup
     await init_db()
-    await queue_worker.start()
+    if not os.environ.get("VERCEL"):
+        await queue_worker.start()
     yield
     # Shutdown
-    await queue_worker.stop()
+    if not os.environ.get("VERCEL"):
+        await queue_worker.stop()
 
 app = FastAPI(
     title="PhD Professor Review & Cold Outreach CRM",
@@ -33,12 +35,22 @@ app.add_middleware(
 
 app.include_router(api_router)
 
+@app.get("/api")
+@app.get("/api/")
+async def api_root():
+    return {
+        "status": "online",
+        "service": "PhD Professor Review & Cold Outreach CRM API",
+        "runtime": "Vercel Serverless Python" if os.environ.get("VERCEL") else "FastAPI Uvicorn"
+    }
+
 @app.get("/api/health")
 async def health_check():
     return {
         "status": "healthy",
         "service": "PhD Professor Review & Outreach CRM",
         "environment": settings.ENVIRONMENT,
+        "runtime": "Vercel Serverless" if os.environ.get("VERCEL") else "Standard Server",
         "active_gemini_keys": len(settings.gemini_keys),
         "model": settings.GEMINI_MODEL
     }
