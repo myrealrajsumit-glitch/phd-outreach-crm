@@ -45,12 +45,12 @@ const EmailCenterPage = () => {
         api.get('/emails', { params }),
         api.get('/professors')
       ]);
-      let data = emailRes.data || [];
+      let data = Array.isArray(emailRes.data) ? emailRes.data : [];
       if (isFollowUpTab) {
         data = data.filter(d => d.status === 'Sent' || d.status === 'Scheduled');
       }
       setEmails(data);
-      setProfessors(profRes.data || []);
+      setProfessors(Array.isArray(profRes.data) ? profRes.data : []);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load email drafts.");
@@ -84,10 +84,10 @@ const EmailCenterPage = () => {
   };
 
   const getProfessor = (profId) => {
-    return professors.find(p => p.id === profId) || { name: 'Faculty Member', institution: 'University', email: '' };
+    return (Array.isArray(professors) ? professors : []).find(p => p.id === profId) || { name: 'Faculty Member', institution: 'University', email: '' };
   };
 
-  const filteredEmails = emails.filter(d => {
+  const filteredEmails = (Array.isArray(emails) ? emails : []).filter(d => {
     if (!searchQuery.trim()) return true;
     const prof = getProfessor(d.professor_id);
     const q = searchQuery.toLowerCase();

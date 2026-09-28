@@ -47,7 +47,7 @@ const DashboardPage = () => {
 
   const overview = stats?.overview || {};
   const funnel = stats?.funnel || {};
-  const recent = stats?.recent_activity || [];
+  const recent = Array.isArray(stats?.recent_activity) ? stats.recent_activity : [];
 
   const statCards = [
     { label: 'Target Faculty', val: overview.total_professors || 0, icon: Users, color: 'text-blue-700 bg-blue-50 border-blue-200' },

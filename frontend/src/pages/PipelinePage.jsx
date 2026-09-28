@@ -32,7 +32,7 @@ const PipelinePage = () => {
   const fetchProfessors = async () => {
     try {
       const res = await api.get('/professors');
-      setProfessors(res.data);
+      setProfessors(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching pipeline:", err);
       toast.error("Failed to load pipeline.");
@@ -50,7 +50,7 @@ const PipelinePage = () => {
     try {
       await api.put(`/professors/${profId}`, { status: newStage });
       setProfessors(prev =>
-        prev.map(p => (p.id === profId ? { ...p, status: newStage } : p))
+        (Array.isArray(prev) ? prev : []).map(p => (p.id === profId ? { ...p, status: newStage } : p))
       );
       toast.success(`Moved to ${newStage.replace('_', ' ')}`);
     } catch (err) {
@@ -90,7 +90,7 @@ const PipelinePage = () => {
       {/* Kanban Horizontal Scroll Container */}
       <div className="flex gap-4 overflow-x-auto pb-6 pt-2">
         {STAGES.map((stage, colIdx) => {
-          const items = professors.filter(p => p.status === stage.key);
+          const items = (Array.isArray(professors) ? professors : []).filter(p => p.status === stage.key);
           return (
             <div
               key={stage.key}

@@ -72,9 +72,9 @@ const GmailCompose = () => {
           api.get('/emails/templates'),
           api.get('/emails', { params: { status: 'Sent' } })
         ]);
-        setProfessors(profRes.data || []);
-        setTemplates(tplRes.data || []);
-        setSentEmails(sentRes.data || []);
+        setProfessors(Array.isArray(profRes.data) ? profRes.data : []);
+        setTemplates(Array.isArray(tplRes.data) ? tplRes.data : []);
+        setSentEmails(Array.isArray(sentRes.data) ? sentRes.data : []);
       } catch (err) {
         console.error("Error loading compose metadata:", err);
       }
@@ -97,10 +97,12 @@ const GmailCompose = () => {
   }, [isOpen, composeData]);
 
   // Matched professor derived from current email or selected ID
-  const matchedProf = professors.find(p => 
-    (to && p.email?.toLowerCase() === to.trim().toLowerCase()) ||
-    (selectedProfId && p.id === parseInt(selectedProfId))
-  );
+  const matchedProf = Array.isArray(professors)
+    ? professors.find(p => 
+        (to && p.email?.toLowerCase() === to.trim().toLowerCase()) ||
+        (selectedProfId && p.id === parseInt(selectedProfId))
+      )
+    : null;
 
   // Debounced Timezone & Country Intelligence analysis when `to` changes
   useEffect(() => {
@@ -112,7 +114,9 @@ const GmailCompose = () => {
     const timer = setTimeout(async () => {
       setIsAnalyzingSchedule(true);
       try {
-        const targetProf = professors.find(p => p.email?.toLowerCase() === to.trim().toLowerCase());
+        const targetProf = Array.isArray(professors) 
+          ? professors.find(p => p.email?.toLowerCase() === to.trim().toLowerCase()) 
+          : null;
         const res = await api.post('/emails/analyze-schedule', {
           email: to.trim(),
           institution: targetProf?.institution || null
@@ -138,7 +142,9 @@ const GmailCompose = () => {
     const timer = setTimeout(async () => {
       setIsCheckingSpam(true);
       try {
-        const targetProf = professors.find(p => p.email?.toLowerCase() === to.trim().toLowerCase());
+        const targetProf = Array.isArray(professors) 
+          ? professors.find(p => p.email?.toLowerCase() === to.trim().toLowerCase()) 
+          : null;
         const res = await api.post('/emails/check-spam', {
           subject: subject,
           body: body,
@@ -612,11 +618,11 @@ const GmailCompose = () => {
               </button>
 
               {/* Template Selector */}
-              {templates.length > 0 && (
+              {Array.isArray(templates) && templates.length > 0 && (
                 <div className="relative">
                   <select 
                     onChange={(e) => {
-                      const t = templates.find(x => x.id === parseInt(e.target.value));
+                      const t = Array.isArray(templates) ? templates.find(x => x.id === parseInt(e.target.value)) : null;
                       if (t) {
                         setSubject(t.subject_template);
                         setBody(t.body_template);

@@ -29,5 +29,16 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Response interceptor: reject HTML responses (e.g. Vercel SPA rewrites when backend is offline or unconfigured)
+api.interceptors.response.use(
+  (response) => {
+    if (typeof response.data === 'string' && (response.data.includes('<!DOCTYPE') || response.data.includes('<html'))) {
+      return Promise.reject(new Error("Backend API unavailable. Received HTML response instead of JSON."));
+    }
+    return response;
+  },
+  (error) => Promise.reject(error)
+);
+
 export default api;
 

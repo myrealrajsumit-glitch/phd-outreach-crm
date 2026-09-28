@@ -183,7 +183,7 @@ const ProfessorsPage = () => {
           <h2 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
             Target Faculty Directory
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">
-              {professors.length} professors
+              {Array.isArray(professors) ? professors.length : 0} professors
             </span>
           </h2>
           <p className="text-xs text-slate-500">
@@ -268,7 +268,7 @@ const ProfessorsPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {professors.map((prof) => (
+                {(Array.isArray(professors) ? professors : []).map((prof) => (
                   <tr
                     key={prof.id}
                     onClick={() => navigate(`/professors/${prof.id}`)}
