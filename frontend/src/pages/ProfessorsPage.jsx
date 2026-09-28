@@ -65,7 +65,7 @@ const ProfessorsPage = () => {
           status: statusFilter !== 'All' ? statusFilter : undefined
         }
       });
-      setProfessors(res.data);
+      setProfessors(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load professors.");

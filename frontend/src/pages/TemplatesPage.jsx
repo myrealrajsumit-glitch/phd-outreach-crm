@@ -12,7 +12,7 @@ const TemplatesPage = () => {
   const fetchTemplates = async () => {
     try {
       const res = await api.get('/emails/templates');
-      setTemplates(res.data);
+      setTemplates(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load templates.");
