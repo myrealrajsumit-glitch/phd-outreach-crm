@@ -46,14 +46,35 @@ const EmailCenterPage = () => {
         api.get('/professors')
       ]);
       let data = Array.isArray(emailRes.data) ? emailRes.data : [];
+      
+      // Merge with local drafts/sent if offline
+      const localDrafts = JSON.parse(localStorage.getItem('local_email_drafts') || '[]');
+      const localSent = JSON.parse(localStorage.getItem('local_sent_emails') || '[]');
+      const allLocal = [...localDrafts, ...localSent];
+      if (allLocal.length > 0) {
+        data = [...allLocal, ...data];
+      }
+
       if (isFollowUpTab) {
         data = data.filter(d => d.status === 'Sent' || d.status === 'Scheduled');
+      } else if (activeTab !== 'All') {
+        data = data.filter(d => d.status?.toLowerCase() === activeTab.toLowerCase());
       }
       setEmails(data);
       setProfessors(Array.isArray(profRes.data) ? profRes.data : []);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to load email drafts.");
+      // Fallback to local storage on error
+      const localDrafts = JSON.parse(localStorage.getItem('local_email_drafts') || '[]');
+      const localSent = JSON.parse(localStorage.getItem('local_sent_emails') || '[]');
+      let localData = [...localDrafts, ...localSent];
+      if (activeTab !== 'All') {
+        localData = localData.filter(d => d.status?.toLowerCase() === activeTab.toLowerCase());
+      }
+      setEmails(localData);
+      if (localData.length === 0) {
+        toast.error("Backend offline. Using local CRM storage.");
+      }
     } finally {
       setLoading(false);
     }
