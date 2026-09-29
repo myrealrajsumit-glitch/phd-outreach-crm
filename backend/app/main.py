@@ -35,6 +35,22 @@ app.add_middleware(
 
 app.include_router(api_router)
 
+# Direct routes without /api prefix (for Vercel rewrites that strip /api)
+from app.api.auth_routes import router as auth_router
+from app.api.professor_routes import router as professor_router
+from app.api.email_routes import router as email_router
+from app.api.ai_routes import router as ai_router
+from app.api.stats_routes import router as stats_router
+from app.api.discovery_routes import router as discovery_router
+
+app.include_router(auth_router)
+app.include_router(professor_router)
+app.include_router(email_router)
+app.include_router(ai_router)
+app.include_router(stats_router)
+app.include_router(discovery_router)
+
+@app.get("/")
 @app.get("/api")
 @app.get("/api/")
 async def api_root():
@@ -44,6 +60,7 @@ async def api_root():
         "runtime": "Vercel Serverless Python" if os.environ.get("VERCEL") else "FastAPI Uvicorn"
     }
 
+@app.get("/health")
 @app.get("/api/health")
 async def health_check():
     return {
