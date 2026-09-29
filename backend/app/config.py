@@ -8,7 +8,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 ENV_FILE = BASE_DIR / ".env"
 
 def resolve_database_url() -> str:
-    env_db = os.environ.get("DATABASE_URL")
+    env_db = (
+        os.environ.get("DATABASE_URL")
+        or os.environ.get("POSTGRES_URL")
+        or os.environ.get("POSTGRES_PRISMA_URL")
+        or os.environ.get("POSTGRES_URL_NON_POOLING")
+        or os.environ.get("SUPABASE_DB_URL")
+    )
     if env_db and env_db.strip():
         db_url = env_db.strip()
         if db_url.startswith("postgres://"):
