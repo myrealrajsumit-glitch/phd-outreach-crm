@@ -14,17 +14,17 @@ class EmailDraft(Base):
     # Draft status: 'Draft', 'Scheduled', 'Sending', 'Sent', 'Failed', 'Replied'
     status = Column(String(50), default="Draft", index=True)
     
-    sent_at = Column(DateTime, nullable=True)
-    scheduled_for = Column(DateTime, nullable=True)
+    sent_at = Column(DateTime(timezone=True), nullable=True)
+    scheduled_for = Column(DateTime(timezone=True), nullable=True)
     
     # Reply tracking
-    replied_at = Column(DateTime, nullable=True)
+    replied_at = Column(DateTime(timezone=True), nullable=True)
     reply_category = Column(String(50), nullable=True)  # 'Positive', 'Neutral', 'Not_Accepting', 'Referred'
     reply_summary = Column(Text, nullable=True)
     
     error_message = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     professor = relationship("Professor", back_populates="emails")
     queue_item = relationship("QueueItem", back_populates="email_draft", uselist=False, cascade="all, delete-orphan")
@@ -40,5 +40,5 @@ class EmailTemplate(Base):
     body_template = Column(Text, nullable=False)
     is_default = Column(Boolean, default=False)
 
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     user = relationship("User", back_populates="templates")

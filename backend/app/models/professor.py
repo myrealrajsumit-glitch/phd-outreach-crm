@@ -28,8 +28,8 @@ class Professor(Base):
     notes = Column(Text, nullable=True)
     ai_synthesis = Column(Text, nullable=True)  # Gemini generated paper critique & research angles
 
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="professors")
     papers = relationship("Paper", back_populates="professor", cascade="all, delete-orphan")
@@ -48,6 +48,6 @@ class Paper(Base):
     key_contributions = Column(Text, nullable=True)
     candidate_overlap_notes = Column(Text, nullable=True)
 
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     professor = relationship("Professor", back_populates="papers")

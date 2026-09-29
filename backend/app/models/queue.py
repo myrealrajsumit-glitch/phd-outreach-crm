@@ -11,13 +11,13 @@ class QueueItem(Base):
     
     # Queue status: 'Queued', 'Processing', 'Sent', 'Failed', 'Cancelled'
     status = Column(String(50), default="Queued", index=True)
-    scheduled_for = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    scheduled_for = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)
     
     attempts = Column(Integer, default=0)
     max_attempts = Column(Integer, default=3)
     last_error = Column(Text, nullable=True)
     
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    executed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    executed_at = Column(DateTime(timezone=True), nullable=True)
 
     email_draft = relationship("EmailDraft", back_populates="queue_item")

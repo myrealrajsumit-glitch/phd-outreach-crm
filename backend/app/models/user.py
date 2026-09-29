@@ -24,7 +24,7 @@ class User(Base):
     smtp_use_tls = Column(Boolean, default=True)
 
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     professors = relationship("Professor", back_populates="user", cascade="all, delete-orphan")
     templates = relationship("EmailTemplate", back_populates="user", cascade="all, delete-orphan")
