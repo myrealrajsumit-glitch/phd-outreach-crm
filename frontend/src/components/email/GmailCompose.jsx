@@ -21,7 +21,8 @@ import {
   Zap,
   Calendar,
   CheckCircle2,
-  Info
+  Info,
+  ExternalLink
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -724,16 +725,36 @@ const GmailCompose = () => {
             {/* Primary Action Buttons: Instant Send vs Smart Schedule */}
             <div className="flex flex-wrap items-center gap-2">
               
-              {/* Option 1: Send Instant Email */}
+              {/* Option 1: Send Instant Email (Direct SMTP) */}
               <button
                 type="button"
                 onClick={handleSendInstantEmail}
                 disabled={isSending || isScheduling}
                 className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/20 flex items-center gap-1.5 transition-all disabled:opacity-50"
-                title="Send email immediately right now via SMTP"
+                title="Send email immediately right now via backend SMTP"
               >
                 <Zap className="w-3.5 h-3.5" />
                 <span>{isSending ? "Sending..." : "⚡ Send Instant Email"}</span>
+              </button>
+
+              {/* 1-Click Open in Gmail Web */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!to || !to.includes('@')) {
+                    toast.error("Please enter a valid recipient email address.");
+                    return;
+                  }
+                  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to.trim())}&su=${encodeURIComponent(subject || '')}&body=${encodeURIComponent(body || '')}`;
+                  window.open(gmailUrl, '_blank');
+                  handleSaveDraft({ silent: true });
+                  toast.success("Opened in Gmail! Draft saved in CRM.", { icon: '📧' });
+                }}
+                className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-600/20 flex items-center gap-1.5 transition-all"
+                title="Open directly in Gmail web with recipient, subject, and body prefilled"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Open in Gmail</span>
               </button>
 
               {/* Option 2: Smart Schedule Email */}
