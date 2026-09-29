@@ -4,6 +4,12 @@
   "buildCommand": "npm --prefix frontend run build",
   "installCommand": "npm --prefix frontend install",
   "outputDirectory": "frontend/dist",
+  "functions": {
+    "api/index.py": {
+      "includeFiles": "backend/**,phd_crm.db",
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     {
       "source": "/api",

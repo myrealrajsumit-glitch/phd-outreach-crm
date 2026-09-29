@@ -8,6 +8,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 ENV_FILE = BASE_DIR / ".env"
 
 def resolve_database_url() -> str:
+    env_db = os.environ.get("DATABASE_URL")
+    if env_db and env_db.strip():
+        db_url = env_db.strip()
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+asyncpg://"):
+            db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return db_url
+
     if os.environ.get("VERCEL"):
         tmp_db = Path("/tmp/phd_crm.db")
         source_db = BASE_DIR / "phd_crm.db"
