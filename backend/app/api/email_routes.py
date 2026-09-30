@@ -63,7 +63,10 @@ async def list_email_drafts(
     if professor_id:
         query = query.where(EmailDraft.professor_id == professor_id)
     if status and status != "All":
-        query = query.where(EmailDraft.status == status)
+        if status.lower() == "sent":
+            query = query.where(EmailDraft.status.in_(["Sent", "Failed"]))
+        else:
+            query = query.where(EmailDraft.status == status)
 
     res = await db.execute(query)
     return res.scalars().all()
@@ -314,19 +317,15 @@ async def send_email_draft(
     current_user: User = Depends(get_current_user)
 ):
     stmt = (
-        select(EmailDraft)
-        .join(Professor)
+        select(EmailDraft, Professor)
+        .join(Professor, EmailDraft.professor_id == Professor.id)
         .where(EmailDraft.id == req.draft_id, Professor.user_id == current_user.id)
     )
     res = await db.execute(stmt)
-    draft = res.scalar_one_or_none()
-    if not draft:
+    row = res.first()
+    if not row:
         raise HTTPException(status_code=404, detail="Draft not found")
-
-    # Load professor
-    prof_stmt = select(Professor).where(Professor.id == draft.professor_id)
-    prof_res = await db.execute(prof_stmt)
-    professor = prof_res.scalar_one()
+    draft, professor = row
 
     if req.send_now:
         # Immediate optimistic status update
@@ -379,28 +378,21 @@ async def batch_send_drafts(
     sent_count = 0
 
     if req.send_now:
-        for draft_id in req.draft_ids:
-            stmt = (
-                select(EmailDraft)
-                .join(Professor)
-                .where(EmailDraft.id == draft_id, Professor.user_id == current_user.id)
-            )
-            res = await db.execute(stmt)
-            draft = res.scalar_one_or_none()
-            if not draft:
-                continue
+        # Load all drafts and corresponding professors in ONE single joined query
+        stmt = (
+            select(EmailDraft, Professor)
+            .join(Professor, EmailDraft.professor_id == Professor.id)
+            .where(EmailDraft.id.in_(req.draft_ids), Professor.user_id == current_user.id)
+        )
+        res = await db.execute(stmt)
+        items = res.all()
 
-            prof_stmt = select(Professor).where(Professor.id == draft.professor_id)
-            p_res = await db.execute(prof_stmt)
-            prof = p_res.scalar_one()
-
-            # Mark sent immediately in database
+        for draft, prof in items:
             draft.status = "Sent"
             draft.sent_at = now
             prof.status = "Sent"
             sent_count += 1
 
-            # Dispatch SMTP in background
             background_tasks.add_task(
                 _async_background_smtp_send,
                 current_user,

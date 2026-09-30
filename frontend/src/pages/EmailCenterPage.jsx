@@ -68,7 +68,9 @@ const EmailCenterPage = () => {
       }
 
       if (isFollowUpTab) {
-        data = data.filter(d => d.status === 'Sent');
+        data = data.filter(d => ['sent', 'failed'].includes(d.status?.toLowerCase()));
+      } else if (activeTab === 'Sent') {
+        data = data.filter(d => ['sent', 'failed'].includes(d.status?.toLowerCase()));
       } else if (activeTab !== 'All') {
         data = data.filter(d => d.status?.toLowerCase() === activeTab.toLowerCase());
       }
@@ -296,9 +298,7 @@ const EmailCenterPage = () => {
       const nowIso = new Date().toISOString();
 
       const remainingDrafts = localDrafts.filter(d => !draftIds.some(delId => String(delId) === String(d.id)));
-      const sentDrafts = localDrafts
-        .filter(d => draftIds.some(delId => String(delId) === String(d.id)))
-        .map(d => ({ ...d, status: 'Sent', sent_at: nowIso }));
+      const sentDrafts = toSend.map(d => ({ ...d, status: 'Sent', sent_at: nowIso }));
 
       localStorage.setItem('local_email_drafts', JSON.stringify(remainingDrafts));
       localStorage.setItem('local_sent_emails', JSON.stringify([...sentDrafts, ...localSent]));
