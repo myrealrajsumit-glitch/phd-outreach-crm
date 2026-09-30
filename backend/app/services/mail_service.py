@@ -47,7 +47,7 @@ class MailService:
                 password=smtp_password.strip(),
                 use_tls=use_ssl,
                 start_tls=use_starttls,
-                timeout=25
+                timeout=12
             )
             logger.info(f"Email successfully sent to {recipient_email}")
             return True, None

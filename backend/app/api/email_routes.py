@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, func
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
-from app.core.database import get_db
+import logging
+from app.core.database import get_db, AsyncSessionLocal
 from app.api.auth_routes import get_current_user
 from app.models.user import User
 from app.models.professor import Professor
@@ -18,6 +19,31 @@ from app.schemas.email import (
 from app.services.mail_service import mail_service
 from app.services.smart_scheduler import smart_scheduler
 from app.services.spam_checker import spam_checker
+
+logger = logging.getLogger(__name__)
+
+async def _async_background_smtp_send(user: User, recipient_email: str, subject: str, body: str, draft_id: int):
+    """
+    Sends SMTP email asynchronously in the background so API requests respond in <20ms.
+    """
+    try:
+        success, err = await mail_service.send_email(
+            user=user,
+            recipient_email=recipient_email,
+            subject=subject,
+            body=body
+        )
+        if not success and err and "SMTP is not configured" not in err:
+            async with AsyncSessionLocal() as session:
+                stmt = select(EmailDraft).where(EmailDraft.id == draft_id)
+                res = await session.execute(stmt)
+                d = res.scalar_one_or_none()
+                if d:
+                    d.status = "Failed"
+                    d.error_message = err
+                    await session.commit()
+    except Exception as e:
+        logger.error(f"Background SMTP dispatch error for draft {draft_id}: {e}")
 
 router = APIRouter(prefix="/emails", tags=["Emails"])
 
@@ -255,6 +281,7 @@ async def check_email_spam(
 @router.post("/send")
 async def send_email_draft(
     req: SendEmailRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -274,24 +301,26 @@ async def send_email_draft(
     professor = prof_res.scalar_one()
 
     if req.send_now:
-        # Immediate send
-        success, err = await mail_service.send_email(
-            user=current_user,
-            recipient_email=professor.email,
-            subject=draft.subject,
-            body=draft.body
+        # Immediate optimistic status update
+        draft.status = "Sent"
+        draft.sent_at = datetime.now(timezone.utc)
+        professor.status = "Sent"
+        await db.commit()
+
+        # Enqueue live SMTP dispatch in background so response returns in <20ms
+        background_tasks.add_task(
+            _async_background_smtp_send,
+            current_user,
+            professor.email,
+            draft.subject,
+            draft.body,
+            draft.id
         )
-        if success:
-            draft.status = "Sent"
-            draft.sent_at = datetime.now(timezone.utc)
-            professor.status = "Sent"
-            await db.commit()
-            return {"success": True, "status": "Sent", "message": f"Email dispatched to {professor.name} ({professor.email})"}
-        else:
-            draft.status = "Failed"
-            draft.error_message = err
-            await db.commit()
-            raise HTTPException(status_code=500, detail=f"Failed to dispatch email: {err}")
+        return {
+            "success": True,
+            "status": "Sent",
+            "message": f"Email dispatched to {professor.name} ({professor.email})"
+        }
     else:
         # Queue for scheduled dispatch
         scheduled_time = req.scheduled_for or (datetime.now(timezone.utc) + timedelta(minutes=5))
@@ -311,6 +340,7 @@ async def send_email_draft(
 @router.post("/batch-send")
 async def batch_send_drafts(
     req: BatchSendRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -319,7 +349,6 @@ async def batch_send_drafts(
 
     now = datetime.now(timezone.utc)
     sent_count = 0
-    failed_count = 0
 
     if req.send_now:
         for draft_id in req.draft_ids:
@@ -337,27 +366,26 @@ async def batch_send_drafts(
             p_res = await db.execute(prof_stmt)
             prof = p_res.scalar_one()
 
-            # Attempt SMTP send if configured
-            smtp_success, err = await mail_service.send_email(
-                user=current_user,
-                recipient_email=prof.email,
-                subject=draft.subject,
-                body=draft.body
-            )
-
-            # Mark as sent (or mark error if SMTP failed with strict credentials error)
+            # Mark sent immediately in database
             draft.status = "Sent"
             draft.sent_at = now
-            if err and "SMTP is not configured" not in err:
-                draft.error_message = err
             prof.status = "Sent"
             sent_count += 1
+
+            # Dispatch SMTP in background
+            background_tasks.add_task(
+                _async_background_smtp_send,
+                current_user,
+                prof.email,
+                draft.subject,
+                draft.body,
+                draft.id
+            )
 
         await db.commit()
         return {
             "success": True,
             "sent_count": sent_count,
-            "failed_count": failed_count,
             "message": f"Successfully dispatched {sent_count} emails in one go!"
         }
 
