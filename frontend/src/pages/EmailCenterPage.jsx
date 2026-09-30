@@ -209,12 +209,12 @@ const EmailCenterPage = () => {
                 >
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                      {prof.name.charAt(0)}
+                      {((prof?.name || draft.recipient_email || 'P').charAt(0)).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-bold text-slate-900 text-sm">
-                          {prof.name}
+                          {prof?.name || draft.recipient_email || 'Faculty Member'}
                         </span>
                         <span className="text-[11px] text-blue-900 font-semibold flex items-center gap-1">
                           <Building className="w-3 h-3 text-slate-400" />
@@ -336,11 +336,11 @@ const EmailCenterPage = () => {
             <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
-                  {getProfessor(viewingEmail.professor_id).name.charAt(0)}
+                  {((getProfessor(viewingEmail.professor_id)?.name || viewingEmail.recipient_email || 'P').charAt(0)).toUpperCase()}
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
-                    {getProfessor(viewingEmail.professor_id).name}
+                    {getProfessor(viewingEmail.professor_id)?.name || viewingEmail.recipient_email || 'Faculty Member'}
                   </h3>
                   <p className="text-xs text-slate-500 flex items-center gap-1.5">
                     <span>{getProfessor(viewingEmail.professor_id).institution}</span>

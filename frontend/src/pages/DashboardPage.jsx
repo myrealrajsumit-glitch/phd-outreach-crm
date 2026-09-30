@@ -34,6 +34,15 @@ const DashboardPage = () => {
       const localDrafts = JSON.parse(localStorage.getItem('local_email_drafts') || '[]');
       const localProfessors = JSON.parse(localStorage.getItem('local_professors') || '[]');
 
+      const recentFaculty = localProfessors.length > 0 
+        ? localProfessors.slice(0, 5)
+        : [...localSent, ...localScheduled, ...localDrafts].slice(0, 5).map(item => ({
+            id: item.id,
+            name: item.recipient_name || (item.recipient_email ? item.recipient_email.split('@')[0] : 'Faculty Member'),
+            institution: item.institution || (item.recipient_email ? item.recipient_email.split('@')[1] : 'Academic Institution'),
+            match_score: 8.5
+          }));
+
       setStats({
         overview: {
           total_professors: localProfessors.length,
@@ -51,7 +60,7 @@ const DashboardPage = () => {
           replied: 0,
           interview: 0
         },
-        recent_activity: [...localSent, ...localScheduled, ...localDrafts].slice(0, 5)
+        recent_activity: recentFaculty
       });
     } finally {
       setLoading(false);
@@ -192,13 +201,13 @@ const DashboardPage = () => {
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs">
-                    {prof.name.charAt(0)}
+                    {((prof?.name || prof?.recipient_name || prof?.recipient_email || 'P').charAt(0)).toUpperCase()}
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-900">{prof.name}</div>
+                    <div className="text-xs font-bold text-slate-900">{prof?.name || prof?.recipient_name || prof?.recipient_email || 'Faculty Member'}</div>
                     <div className="text-[11px] text-slate-500 flex items-center gap-1">
                       <Building className="w-3 h-3 text-slate-400" />
-                      <span className="font-semibold text-blue-900">{prof.institution}</span>
+                      <span className="font-semibold text-blue-900">{prof?.institution || 'Academic Institution'}</span>
                     </div>
                   </div>
                 </div>
