@@ -63,6 +63,9 @@ class BatchSendRequest(BaseModel):
     start_immediately: bool = True
     send_now: bool = True
 
+class BatchDeleteRequest(BaseModel):
+    draft_ids: list[int]
+
 class ScheduleAnalysisRequest(BaseModel):
     email: str
     institution: Optional[str] = None

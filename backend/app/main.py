@@ -14,12 +14,9 @@ async def lifespan(app: FastAPI):
         await init_db()
     except Exception as e:
         print(f"Lifespan DB startup non-fatal warning: {e}")
-    if not os.environ.get("VERCEL"):
-        await queue_worker.start()
+    # Queue worker removed as user requested removing scheduled email polling and batch processing on demand
     yield
     # Shutdown
-    if not os.environ.get("VERCEL"):
-        await queue_worker.stop()
 
 app = FastAPI(
     title="PhD Professor Review & Cold Outreach CRM",

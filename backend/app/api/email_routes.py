@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, func
+from sqlalchemy import select, desc, func, delete
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 import logging
@@ -12,7 +12,7 @@ from app.models.email import EmailDraft, EmailTemplate
 from app.models.queue import QueueItem
 from app.schemas.email import (
     EmailDraftCreate, EmailDraftUpdate, EmailDraftResponse,
-    TemplateCreate, TemplateResponse, SendEmailRequest, BatchSendRequest,
+    TemplateCreate, TemplateResponse, SendEmailRequest, BatchSendRequest, BatchDeleteRequest,
     ScheduleAnalysisRequest, ScheduleAnalysisResponse,
     SpamCheckRequest, SpamCheckResponse
 )
@@ -242,9 +242,37 @@ async def delete_email_draft(
     if not draft:
         raise HTTPException(status_code=404, detail="Email draft not found")
 
+    # Safely remove referencing QueueItem first to avoid foreign key errors
+    await db.execute(delete(QueueItem).where(QueueItem.email_draft_id == draft_id))
     await db.delete(draft)
     await db.commit()
     return {"success": True, "message": "Draft deleted"}
+
+@router.post("/batch-delete")
+async def batch_delete_drafts(
+    req: BatchDeleteRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not req.draft_ids:
+        return {"success": True, "deleted_count": 0}
+
+    # Delete referencing QueueItems first
+    await db.execute(delete(QueueItem).where(QueueItem.email_draft_id.in_(req.draft_ids)))
+
+    stmt = (
+        select(EmailDraft)
+        .join(Professor)
+        .where(EmailDraft.id.in_(req.draft_ids), Professor.user_id == current_user.id)
+    )
+    res = await db.execute(stmt)
+    drafts = res.scalars().all()
+    deleted_count = len(drafts)
+    for d in drafts:
+        await db.delete(d)
+
+    await db.commit()
+    return {"success": True, "deleted_count": deleted_count, "message": f"Successfully deleted {deleted_count} drafts."}
 
 @router.post("/analyze-schedule", response_model=ScheduleAnalysisResponse)
 async def analyze_schedule(
