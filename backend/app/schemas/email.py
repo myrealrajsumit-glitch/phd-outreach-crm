@@ -59,8 +59,9 @@ class SendEmailRequest(BaseModel):
 
 class BatchSendRequest(BaseModel):
     draft_ids: list[int]
-    interval_seconds: int = 60
+    interval_seconds: int = 0
     start_immediately: bool = True
+    send_now: bool = True
 
 class ScheduleAnalysisRequest(BaseModel):
     email: str

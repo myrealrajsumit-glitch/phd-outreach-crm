@@ -27,7 +27,6 @@ import {
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { formatErrorMessage } from '../../utils/errorUtils';
-import { clientCalculateOptimalSchedule } from '../../utils/smartScheduler';
 import { clientCheckSpam } from '../../utils/spamChecker';
 
 const GmailCompose = () => {
@@ -54,16 +53,13 @@ const GmailCompose = () => {
   const [templates, setTemplates] = useState([]);
   const [sentEmails, setSentEmails] = useState([]);
   
-  // Smart Scheduler & Anti-Spam state
-  const [scheduleData, setScheduleData] = useState(null);
-  const [isAnalyzingSchedule, setIsAnalyzingSchedule] = useState(false);
+  // Anti-Spam state
   const [spamData, setSpamData] = useState(null);
   const [isCheckingSpam, setIsCheckingSpam] = useState(false);
   const [showSpamDetails, setShowSpamDetails] = useState(false);
 
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [isScheduling, setIsScheduling] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Load professors, templates, and sent outreach
@@ -107,35 +103,6 @@ const GmailCompose = () => {
       )
     : null;
 
-  // Debounced Timezone & Country Intelligence analysis when `to` changes
-  useEffect(() => {
-    if (!isOpen || !to || !to.includes('@')) {
-      setScheduleData(null);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setIsAnalyzingSchedule(true);
-      const targetProf = Array.isArray(professors) 
-        ? professors.find(p => p.email?.toLowerCase() === to.trim().toLowerCase()) 
-        : null;
-      try {
-        const res = await api.post('/emails/analyze-schedule', {
-          email: to.trim(),
-          institution: targetProf?.institution || null
-        });
-        setScheduleData(res.data);
-      } catch (err) {
-        // High-reliability offline/serverless client fallback
-        const fallbackSchedule = clientCalculateOptimalSchedule(to.trim(), targetProf?.institution);
-        setScheduleData(fallbackSchedule);
-      } finally {
-        setIsAnalyzingSchedule(false);
-      }
-    }, 250);
-
-    return () => clearTimeout(timer);
-  }, [to, isOpen, professors]);
 
   // Debounced Anti-Spam analysis when `subject` or `body` changes
   useEffect(() => {
@@ -371,82 +338,6 @@ const GmailCompose = () => {
     }
   };
 
-  // Option 2: Smart Schedule Email (Schedules at optimal academic local time, strictly avoiding Friday)
-  const handleSmartScheduleEmail = async () => {
-    if (!to || !to.includes('@') || !body) {
-      toast.error("Please specify recipient and message body.");
-      return;
-    }
-
-    setIsScheduling(true);
-    try {
-      // 1. Ensure schedule analysis is loaded
-      let sched = scheduleData;
-      if (!sched) {
-        const targetProf = matchedProf;
-        try {
-          const res = await api.post('/emails/analyze-schedule', {
-            email: to.trim(),
-            institution: targetProf?.institution || null
-          });
-          sched = res.data;
-        } catch {
-          sched = clientCalculateOptimalSchedule(to.trim(), targetProf?.institution);
-        }
-        setScheduleData(sched);
-      }
-
-      // 2. Save draft (guaranteed to succeed locally or remotely)
-      const draft = await handleSaveDraft({ silent: true });
-      const draftId = draft?.id || Date.now();
-
-      // 3. Queue for scheduled delivery
-      try {
-        await api.post('/emails/send', {
-          draft_id: draftId,
-          send_now: false,
-          scheduled_for: sched?.scheduled_iso || new Date().toISOString()
-        });
-
-        toast.success(
-          `Scheduled for ${sched?.optimal_slot_local || 'Optimal window'}!`,
-          { icon: '📅', duration: 7000 }
-        );
-        window.dispatchEvent(new Event('crm-data-updated'));
-        closeCompose();
-      } catch (schedErr) {
-        // Persist to local scheduled queue
-        const localScheduled = JSON.parse(localStorage.getItem('local_scheduled_emails') || '[]');
-        const newScheduledItem = {
-          id: Date.now(),
-          draft_id: draftId,
-          recipient_email: to.trim(),
-          subject: subject || 'PhD Outreach Email',
-          body: body || '',
-          scheduled_for: sched?.scheduled_iso || new Date().toISOString(),
-          optimal_slot_local: sched?.optimal_slot_local || 'Optimal Morning Slot',
-          timezone: sched?.timezone || 'Local',
-          status: 'Queued',
-          created_at: new Date().toISOString()
-        };
-        localScheduled.unshift(newScheduledItem);
-        localStorage.setItem('local_scheduled_emails', JSON.stringify(localScheduled));
-        window.dispatchEvent(new Event('crm-data-updated'));
-
-        toast.success(
-          `📅 Queued for ${sched?.optimal_slot_local || 'Optimal Window'} in CRM Outbox!\n\n💡 Tip: To auto-dispatch via SMTP, keep backend running with python backend/run_server.py; or open Gmail to use Google's native 'Schedule send'!`,
-          { duration: 9000, icon: '📅' }
-        );
-        closeCompose();
-      }
-    } catch (err) {
-      console.error("Smart schedule error:", err);
-      toast.error(formatErrorMessage(err, "Failed to schedule email."));
-    } finally {
-      setIsScheduling(false);
-    }
-  };
-
   return (
     <div 
       className={`fixed z-50 bg-white border border-slate-300 rounded-t-2xl shadow-2xl transition-all duration-200 flex flex-col ${
@@ -464,11 +355,6 @@ const GmailCompose = () => {
           <span className="font-semibold text-xs tracking-wide">
             PhD Outreach Composer & Intelligence
           </span>
-          {scheduleData && (
-            <span className="text-[10px] bg-blue-950 text-blue-300 px-2 py-0.5 rounded-full border border-blue-800/60 font-mono">
-              {scheduleData.country} ({scheduleData.timezone.split('/')[1] || scheduleData.timezone})
-            </span>
-          )}
         </div>
         
         <div className="flex items-center gap-1.5 text-slate-400">
@@ -526,44 +412,7 @@ const GmailCompose = () => {
             </div>
           </div>
 
-          {/* Smart Country & Timezone Thinking Card */}
-          {scheduleData && (
-            <div className="bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-slate-50 px-4 py-2.5 border-b border-blue-100 flex flex-col gap-1.5 transition-all text-[11px]">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Globe className="w-3.5 h-3.5 text-blue-600" />
-                  <span className="font-bold text-slate-800">
-                    {scheduleData.country} ({scheduleData.city})
-                  </span>
-                  <span className="text-slate-500 font-medium">
-                    • {scheduleData.diff_hours_str}
-                  </span>
-                  <span className="bg-blue-100/80 text-blue-800 px-2 py-0.5 rounded text-[10px] font-semibold">
-                    {scheduleData.activity_state}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-[10px]">
-                  <span>🛡️ Friday Protected</span>
-                </div>
-              </div>
 
-              <div className="flex flex-wrap items-center justify-between text-slate-600 gap-y-1">
-                <div>
-                  <span className="text-slate-400">Prof Local: </span>
-                  <span className="font-semibold text-slate-700">{scheduleData.current_local_time}</span>
-                  <span className="mx-1 text-slate-300">|</span>
-                  <span className="text-slate-400">India: </span>
-                  <span className="font-semibold text-slate-700">{scheduleData.current_ist_time}</span>
-                </div>
-                <div className="text-blue-900 font-medium flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-blue-600 inline" />
-                  <span>Optimal Delivery: </span>
-                  <span className="font-bold text-blue-700">{scheduleData.optimal_slot_local}</span>
-                  <span className="text-[10px] text-slate-500">({scheduleData.optimal_slot_ist})</span>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Subject Line Input */}
           <div className="px-4 py-2 border-b border-slate-100 flex items-center gap-2">
@@ -725,19 +574,33 @@ const GmailCompose = () => {
           {/* Bottom Action Bar */}
           <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
             
-            {/* Primary Action Buttons: Instant Send vs Smart Schedule */}
+            {/* Primary Action Buttons */}
             <div className="flex flex-wrap items-center gap-2">
               
-              {/* Option 1: Send Instant Email (Direct SMTP) */}
+              {/* Primary Option: Save as Draft */}
+              <button
+                type="button"
+                onClick={async () => {
+                  const draft = await handleSaveDraft({ silent: false });
+                  if (draft) closeCompose();
+                }}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/20 flex items-center gap-1.5 transition-all"
+                title="Save this draft to your CRM outbox so you can review and bulk send"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Save as Draft</span>
+              </button>
+
+              {/* Instant Send via SMTP */}
               <button
                 type="button"
                 onClick={handleSendInstantEmail}
-                disabled={isSending || isScheduling}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/20 flex items-center gap-1.5 transition-all disabled:opacity-50"
-                title="Send email immediately right now via backend SMTP"
+                disabled={isSending}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all disabled:opacity-50"
+                title="Send email immediately right now via SMTP"
               >
                 <Zap className="w-3.5 h-3.5" />
-                <span>{isSending ? "Sending..." : "⚡ Send Instant Email"}</span>
+                <span>{isSending ? "Sending..." : "⚡ Send Instant"}</span>
               </button>
 
               {/* 1-Click Open in Gmail Web */}
@@ -760,18 +623,6 @@ const GmailCompose = () => {
                 <span>Open in Gmail</span>
               </button>
 
-              {/* Option 2: Smart Schedule Email */}
-              <button
-                type="button"
-                onClick={handleSmartScheduleEmail}
-                disabled={isScheduling || isSending}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition-all disabled:opacity-50"
-                title={scheduleData ? `Schedule for ${scheduleData.optimal_slot_local} (Local)` : "Schedule at optimal local morning time"}
-              >
-                <Calendar className="w-3.5 h-3.5" />
-                <span>{isScheduling ? "Scheduling..." : "📅 Smart Schedule Email"}</span>
-              </button>
-
               {/* Copy Text */}
               <button
                 type="button"
@@ -787,22 +638,11 @@ const GmailCompose = () => {
                 <span>{copied ? "Copied!" : "Copy Text"}</span>
               </button>
 
-              {/* Save Draft */}
-              <button
-                type="button"
-                onClick={() => handleSaveDraft({ silent: false })}
-                className="px-3 py-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-all"
-                title="Save draft in CRM outbox"
-              >
-                <Save className="w-3.5 h-3.5 text-slate-500" />
-                <span>Save Draft</span>
-              </button>
-
               {/* Mark as Sent */}
               <button
                 type="button"
                 onClick={handleMarkAsSent}
-                className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all"
+                className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-all"
                 title="Mark outreach as Sent in CRM (updates status to Sent)"
               >
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />

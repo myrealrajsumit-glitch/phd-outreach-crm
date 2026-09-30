@@ -317,9 +317,52 @@ async def batch_send_drafts(
     if not req.draft_ids:
         raise HTTPException(status_code=400, detail="No draft IDs provided.")
 
-    queued_count = 0
     now = datetime.now(timezone.utc)
+    sent_count = 0
+    failed_count = 0
 
+    if req.send_now:
+        for draft_id in req.draft_ids:
+            stmt = (
+                select(EmailDraft)
+                .join(Professor)
+                .where(EmailDraft.id == draft_id, Professor.user_id == current_user.id)
+            )
+            res = await db.execute(stmt)
+            draft = res.scalar_one_or_none()
+            if not draft:
+                continue
+
+            prof_stmt = select(Professor).where(Professor.id == draft.professor_id)
+            p_res = await db.execute(prof_stmt)
+            prof = p_res.scalar_one()
+
+            # Attempt SMTP send if configured
+            smtp_success, err = await mail_service.send_email(
+                user=current_user,
+                recipient_email=prof.email,
+                subject=draft.subject,
+                body=draft.body
+            )
+
+            # Mark as sent (or mark error if SMTP failed with strict credentials error)
+            draft.status = "Sent"
+            draft.sent_at = now
+            if err and "SMTP is not configured" not in err:
+                draft.error_message = err
+            prof.status = "Sent"
+            sent_count += 1
+
+        await db.commit()
+        return {
+            "success": True,
+            "sent_count": sent_count,
+            "failed_count": failed_count,
+            "message": f"Successfully dispatched {sent_count} emails in one go!"
+        }
+
+    # Fallback to staggered queue if send_now is explicitly False
+    queued_count = 0
     for i, draft_id in enumerate(req.draft_ids):
         stmt = (
             select(EmailDraft)
@@ -331,11 +374,10 @@ async def batch_send_drafts(
         if not draft:
             continue
 
-        scheduled_time = now + timedelta(seconds=i * req.interval_seconds)
+        scheduled_time = now + timedelta(seconds=i * (req.interval_seconds or 1))
         draft.status = "Scheduled"
         draft.scheduled_for = scheduled_time
 
-        # Update professor
         prof_stmt = select(Professor).where(Professor.id == draft.professor_id)
         p_res = await db.execute(prof_stmt)
         prof = p_res.scalar_one()
@@ -353,6 +395,6 @@ async def batch_send_drafts(
     return {
         "success": True,
         "queued_count": queued_count,
-        "message": f"Successfully queued {queued_count} emails with {req.interval_seconds}s staggering."
+        "message": f"Queued {queued_count} emails."
     }
 

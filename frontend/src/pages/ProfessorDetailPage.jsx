@@ -164,37 +164,6 @@ const ProfessorDetailPage = () => {
     }
   };
 
-  const handleSmartSchedule = async () => {
-    if (!subject || !body) {
-      toast.error("Please provide both subject and body.");
-      return;
-    }
-    try {
-      const schedRes = await api.post('/emails/analyze-schedule', {
-        email: professor.email,
-        institution: professor.institution
-      });
-      const sched = schedRes.data;
-
-      const draftRes = await api.post('/emails', {
-        professor_id: parseInt(id),
-        subject,
-        body
-      });
-      const draftId = draftRes.data.id;
-
-      await api.post('/emails/send', {
-        draft_id: draftId,
-        send_now: false,
-        scheduled_for: sched.scheduled_iso
-      });
-      toast.success(`Scheduled for ${sched.optimal_slot_local} (Local) / ${sched.optimal_slot_ist} (IST)!`, { icon: '📅' });
-      fetchProfessor();
-    } catch (err) {
-      console.error(err);
-      toast.error(formatErrorMessage(err, "Failed to schedule email."));
-    }
-  };
 
   const handleAddPaper = async (e) => {
     e.preventDefault();
@@ -439,7 +408,7 @@ const ProfessorDetailPage = () => {
             {/* Bottom Actions */}
             <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
               <div className="text-[11px] text-slate-500">
-                Outreach Options: Instant SMTP send or Smart Schedule (Friday protected).
+                Outreach Options: Save as Draft for bulk send, or dispatch immediately.
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -457,24 +426,16 @@ const ProfessorDetailPage = () => {
 
                 <button
                   onClick={handleSaveDraft}
-                  className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold shadow-2xs flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all"
+                  title="Save draft to CRM outbox to review and bulk send"
                 >
-                  <Save className="w-3.5 h-3.5 text-slate-500" />
+                  <Save className="w-3.5 h-3.5" />
                   <span>Save Draft</span>
                 </button>
 
                 <button
-                  onClick={handleSmartSchedule}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5"
-                  title="Schedule at professor's local morning time (Tuesday-Thursday)"
-                >
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>📅 Smart Schedule</span>
-                </button>
-
-                <button
                   onClick={handleSendNow}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all"
                   title="Send immediately via configured SMTP"
                 >
                   <Send className="w-3.5 h-3.5" />
