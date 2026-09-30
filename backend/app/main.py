@@ -10,7 +10,10 @@ from app.config import settings
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    await init_db()
+    try:
+        await init_db()
+    except Exception as e:
+        print(f"Lifespan DB startup non-fatal warning: {e}")
     if not os.environ.get("VERCEL"):
         await queue_worker.start()
     yield
@@ -80,7 +83,7 @@ from fastapi.responses import FileResponse
 
 frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist"))
 
-if os.path.exists(frontend_dist):
+if not os.environ.get("VERCEL") and os.path.exists(frontend_dist):
     assets_dir = os.path.join(frontend_dist, "assets")
     if os.path.exists(assets_dir):
         app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")

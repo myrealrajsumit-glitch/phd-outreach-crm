@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
 
-connect_args = {"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {}
+connect_args = {"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {"statement_cache_size": 0}
 
 engine = create_async_engine(
     settings.DATABASE_URL,
@@ -31,5 +31,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        print(f"Database init warning (non-fatal): {e}")
