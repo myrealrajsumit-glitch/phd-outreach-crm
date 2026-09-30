@@ -27,6 +27,8 @@ import {
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { formatErrorMessage } from '../../utils/errorUtils';
+import { clientCalculateOptimalSchedule } from '../../utils/smartScheduler';
+import { clientCheckSpam } from '../../utils/spamChecker';
 
 const GmailCompose = () => {
   const { 
@@ -114,21 +116,23 @@ const GmailCompose = () => {
 
     const timer = setTimeout(async () => {
       setIsAnalyzingSchedule(true);
+      const targetProf = Array.isArray(professors) 
+        ? professors.find(p => p.email?.toLowerCase() === to.trim().toLowerCase()) 
+        : null;
       try {
-        const targetProf = Array.isArray(professors) 
-          ? professors.find(p => p.email?.toLowerCase() === to.trim().toLowerCase()) 
-          : null;
         const res = await api.post('/emails/analyze-schedule', {
           email: to.trim(),
           institution: targetProf?.institution || null
         });
         setScheduleData(res.data);
       } catch (err) {
-        console.error("Timezone analysis error:", err);
+        // High-reliability offline/serverless client fallback
+        const fallbackSchedule = clientCalculateOptimalSchedule(to.trim(), targetProf?.institution);
+        setScheduleData(fallbackSchedule);
       } finally {
         setIsAnalyzingSchedule(false);
       }
-    }, 350);
+    }, 250);
 
     return () => clearTimeout(timer);
   }, [to, isOpen, professors]);
@@ -142,10 +146,10 @@ const GmailCompose = () => {
 
     const timer = setTimeout(async () => {
       setIsCheckingSpam(true);
+      const targetProf = Array.isArray(professors) 
+        ? professors.find(p => p.email?.toLowerCase() === to.trim().toLowerCase()) 
+        : null;
       try {
-        const targetProf = Array.isArray(professors) 
-          ? professors.find(p => p.email?.toLowerCase() === to.trim().toLowerCase()) 
-          : null;
         const res = await api.post('/emails/check-spam', {
           subject: subject,
           body: body,
@@ -154,11 +158,13 @@ const GmailCompose = () => {
         });
         setSpamData(res.data);
       } catch (err) {
-        console.error("Spam check error:", err);
+        // High-reliability offline/serverless client fallback
+        const fallbackSpam = clientCheckSpam(subject, body, targetProf?.name, to);
+        setSpamData(fallbackSpam);
       } finally {
         setIsCheckingSpam(false);
       }
-    }, 450);
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [subject, body, to, isOpen, professors]);
@@ -426,11 +432,33 @@ const GmailCompose = () => {
           `Scheduled for ${sched?.optimal_slot_local || 'Optimal window'}!`,
           { icon: '📅', duration: 7000 }
         );
+        window.dispatchEvent(new Event('crm-data-updated'));
         closeCompose();
       } catch (schedErr) {
         const isOfflineOr405 = schedErr.response?.status === 405 || schedErr.message?.includes('HTML response') || !schedErr.response;
         if (isOfflineOr405) {
-          toast.success("Draft saved to CRM! (Automated background queue requires live backend)", { duration: 7000, icon: '💾' });
+          // Persist to local scheduled queue
+          const localScheduled = JSON.parse(localStorage.getItem('local_scheduled_emails') || '[]');
+          const newScheduledItem = {
+            id: Date.now(),
+            draft_id: draft?.id,
+            recipient_email: to.trim(),
+            subject: subject || 'PhD Outreach Email',
+            body: body || '',
+            scheduled_for: sched?.scheduled_iso || new Date().toISOString(),
+            optimal_slot_local: sched?.optimal_slot_local || 'Optimal Morning Slot',
+            timezone: sched?.timezone || 'Local',
+            status: 'Queued',
+            created_at: new Date().toISOString()
+          };
+          localScheduled.unshift(newScheduledItem);
+          localStorage.setItem('local_scheduled_emails', JSON.stringify(localScheduled));
+          window.dispatchEvent(new Event('crm-data-updated'));
+
+          toast.success(
+            `📅 Queued for ${sched?.optimal_slot_local || 'Optimal Window'} in CRM Outbox!\n\n💡 Tip: To auto-dispatch via SMTP, keep your backend running with python backend/run_server.py; or open Gmail to use Google's native 'Schedule send'!`,
+            { duration: 9000, icon: '📅' }
+          );
           closeCompose();
           return;
         }

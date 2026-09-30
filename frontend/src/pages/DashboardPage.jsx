@@ -23,18 +23,46 @@ const DashboardPage = () => {
   const navigate = useNavigate();
   const { openCompose } = useCompose();
 
+  const fetchStats = async () => {
+    try {
+      const res = await api.get('/stats/dashboard');
+      setStats(res.data);
+    } catch (err) {
+      console.error("Dashboard fetch error (using local storage fallback):", err);
+      const localScheduled = JSON.parse(localStorage.getItem('local_scheduled_emails') || '[]');
+      const localSent = JSON.parse(localStorage.getItem('local_sent_emails') || '[]');
+      const localDrafts = JSON.parse(localStorage.getItem('local_email_drafts') || '[]');
+      const localProfessors = JSON.parse(localStorage.getItem('local_professors') || '[]');
+
+      setStats({
+        overview: {
+          total_professors: localProfessors.length,
+          total_sent: localSent.length,
+          total_scheduled: localScheduled.length,
+          total_replied: 0,
+          reply_rate_percent: 0
+        },
+        funnel: {
+          identified: localProfessors.length,
+          reviewing: 0,
+          draft_ready: localDrafts.length,
+          queued: localScheduled.length,
+          sent: localSent.length,
+          replied: 0,
+          interview: 0
+        },
+        recent_activity: [...localSent, ...localScheduled, ...localDrafts].slice(0, 5)
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await api.get('/stats/dashboard');
-        setStats(res.data);
-      } catch (err) {
-        console.error("Dashboard fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchStats();
+    const handleUpdate = () => fetchStats();
+    window.addEventListener('crm-data-updated', handleUpdate);
+    return () => window.removeEventListener('crm-data-updated', handleUpdate);
   }, []);
 
   if (loading) {
